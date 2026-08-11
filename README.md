@@ -7,7 +7,6 @@ The Bionic FitPortal team is part of the **Bionic Fit division** and works along
 ## Mission
 
 Our mission is to develop a secure, mobile-first, and user-friendly FitPortal that enables operational and back-end users to manage packing orders and seamlessly connects FitSolver with FitVisualizer.
-
 Our goal is to deliver clear and practical packing results while supporting real-world handling constraints.
 
 ## System Overview
@@ -104,7 +103,7 @@ No new features are planned for Sprint 3.
 5. Test the change against the acceptance criteria.
 6. Merge the approved change into the agreed integration branch.
 
-Important integration decisions—including shared field names, data types, measurement units, API contracts, and error formats—must be coordinated with the FitSolver and FitVisualizer teams.
+Important integration decisions including shared field names, data types, measurement units, API contracts, and error formats must be coordinated with the FitSolver and FitVisualizer teams.
 
 ## Documentation
 
