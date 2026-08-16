@@ -1,0 +1,611 @@
+/* ============================================================
+   FitPortal — design tokens
+   Direction: warehouse freight manifest. Stencilled condensed
+   headings, technical mono for every measurement, high-vis
+   yellow lifted from hazard markings, cool paper ground.
+   ============================================================ */
+
+:root {
+  --ink: #16191d;
+  --ink-soft: #2b3037;
+  --slate: #6b7480;
+  --sheet: #e7e9e4;
+  --card: #ffffff;
+  --rule: #c6cac3;
+  --hivis: #ffd400;
+  --kraft: #b8865b;
+  --kraft-soft: #e3cdb3;
+  --danger: #b03636;
+  --ok: #2f6b46;
+
+  --display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --body: "IBM Plex Sans", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --rail: 232px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--sheet);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.05;
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+h2 {
+  font-size: 1.35rem;
+}
+h3 {
+  font-size: 1.05rem;
+}
+
+a {
+  color: inherit;
+}
+
+/* ---------- structural ---------- */
+
+.shell {
+  display: flex;
+  min-height: 100%;
+}
+
+.rail {
+  width: var(--rail);
+  flex: 0 0 var(--rail);
+  background: var(--ink);
+  color: #f2f3f0;
+  padding: 26px 20px;
+  display: flex;
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+
+.rail__mark {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-size: 1.5rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1;
+}
+
+.rail__mark span {
+  display: block;
+  color: var(--hivis);
+}
+
+.rail__sub {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: #868f9b;
+  margin-top: 8px;
+  letter-spacing: 0.06em;
+}
+
+.rail__nav {
+  margin-top: 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rail__link {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 1.05rem;
+  text-decoration: none;
+  padding: 9px 12px;
+  color: #b9c0c9;
+  border-left: 3px solid transparent;
+  transition: color 0.12s, background 0.12s;
+}
+
+.rail__link:hover {
+  color: #fff;
+  background: #21262c;
+}
+
+.rail__link.is-active {
+  color: var(--ink);
+  background: var(--hivis);
+  border-left-color: var(--ink);
+  font-weight: 600;
+}
+
+.rail__foot {
+  margin-top: auto;
+  border-top: 1px solid #2d333a;
+  padding-top: 16px;
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: #868f9b;
+}
+
+.rail__foot strong {
+  display: block;
+  color: #e6e9ec;
+  font-weight: 500;
+  margin-bottom: 2px;
+}
+
+.main {
+  flex: 1;
+  padding: 40px 44px 80px;
+  max-width: 1180px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--ink);
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 6px;
+}
+
+/* ---------- sheets ---------- */
+
+.sheet {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  padding: 22px 24px;
+  margin-bottom: 18px;
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 10px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--rule);
+  flex-wrap: wrap;
+}
+
+/* ---------- data rows ---------- */
+
+.rows {
+  display: grid;
+  gap: 0;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px dotted var(--rule);
+  align-items: baseline;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row__label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate);
+}
+
+.mono {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- forms ---------- */
+
+label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 6px;
+}
+
+input,
+select {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  padding: 9px 11px;
+  border: 1px solid var(--rule);
+  background: #fbfbfa;
+  color: var(--ink);
+  border-radius: 0;
+}
+
+input:focus,
+select:focus,
+button:focus-visible,
+a:focus-visible {
+  outline: 3px solid var(--hivis);
+  outline-offset: 1px;
+}
+
+.field {
+  margin-bottom: 16px;
+}
+
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+/* ---------- buttons ---------- */
+
+button {
+  font-family: var(--display);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: #fff;
+  cursor: pointer;
+  border-radius: 0;
+  transition: background 0.12s, color 0.12s;
+}
+
+button:hover:not(:disabled) {
+  background: var(--hivis);
+  color: var(--ink);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--ink);
+  color: #fff;
+}
+
+.btn-small {
+  font-size: 0.85rem;
+  padding: 5px 12px;
+  border-width: 1px;
+}
+
+.btn-danger {
+  border-color: var(--danger);
+  background: transparent;
+  color: var(--danger);
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* ---------- tables ---------- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+th {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate);
+  text-align: left;
+  padding: 6px 10px 6px 0;
+  border-bottom: 1px solid var(--ink);
+  font-weight: 500;
+}
+
+td {
+  padding: 9px 10px 9px 0;
+  border-bottom: 1px dotted var(--rule);
+  font-variant-numeric: tabular-nums;
+}
+
+tbody tr:hover {
+  background: #fafaf8;
+}
+
+/* ---------- status tags ---------- */
+
+.tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border: 1px solid currentColor;
+}
+
+.tag--draft {
+  color: var(--slate);
+}
+.tag--packing {
+  color: var(--ink);
+  background: var(--hivis);
+  border-color: var(--ink);
+}
+.tag--packed {
+  color: var(--ok);
+}
+.tag--failed {
+  color: var(--danger);
+}
+
+/* ---------- notices ---------- */
+
+.notice {
+  padding: 11px 14px;
+  border-left: 4px solid var(--ink);
+  background: #fbfbfa;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+
+.notice--error {
+  border-left-color: var(--danger);
+  color: var(--danger);
+  background: #fdf6f6;
+}
+
+.notice--hivis {
+  border-left-color: var(--hivis);
+  background: #fffdf0;
+}
+
+.empty {
+  padding: 40px 0;
+  text-align: center;
+  color: var(--slate);
+}
+
+.empty p {
+  margin: 0 0 16px;
+}
+
+/* ---------- packing preview ---------- */
+
+.boxgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 18px;
+}
+
+.boxcard {
+  border: 1px solid var(--rule);
+  padding: 14px;
+  background: #fbfbfa;
+}
+
+.boxcard__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 10px;
+}
+
+.boxcard__id {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+}
+
+.fillbar {
+  height: 6px;
+  background: var(--rule);
+  margin-top: 10px;
+}
+
+.fillbar__val {
+  height: 100%;
+  background: var(--hivis);
+}
+
+.fillnote {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--slate);
+  margin-top: 5px;
+  display: flex;
+  justify-content: space-between;
+}
+
+/* Slot where FitVisualizer's 3D component gets mounted. */
+.viz-slot {
+  border: 2px dashed var(--rule);
+  padding: 20px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--slate);
+  letter-spacing: 0.06em;
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 10px,
+    #f2f3f0 10px,
+    #f2f3f0 20px
+  );
+}
+
+/* ---------- auth screen ---------- */
+
+.gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.gate__card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-top: 6px solid var(--hivis);
+  padding: 34px 32px;
+}
+
+.gate__mark {
+  font-family: var(--display);
+  text-transform: uppercase;
+  font-size: 2.1rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 0.95;
+  margin-bottom: 4px;
+}
+
+.gate__mark em {
+  font-style: normal;
+  color: var(--kraft);
+}
+
+.gate__sub {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--slate);
+  margin-bottom: 26px;
+}
+
+.gate__switch {
+  margin-top: 18px;
+  font-size: 0.85rem;
+  color: var(--slate);
+  text-align: center;
+}
+
+.gate__switch button {
+  background: none;
+  border: none;
+  color: var(--ink);
+  font-family: var(--body);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.85rem;
+  padding: 0;
+  text-decoration: underline;
+  font-weight: 500;
+}
+
+.gate__switch button:hover {
+  background: none;
+  color: var(--kraft);
+}
+
+.stack-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.muted {
+  color: var(--slate);
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* ---------- responsive ---------- */
+
+@media (max-width: 820px) {
+  .shell {
+    flex-direction: column;
+  }
+  .rail {
+    width: 100%;
+    flex: none;
+    height: auto;
+    position: static;
+    padding: 18px 20px;
+  }
+  .rail__nav {
+    margin-top: 18px;
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .rail__foot {
+    margin-top: 16px;
+  }
+  .main {
+    padding: 24px 20px 60px;
+  }
+  h1 {
+    font-size: 1.9rem;
+  }
+  .row {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
