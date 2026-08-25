@@ -4,29 +4,108 @@ import mongoose from "mongoose";
 
 const itemSchema = new mongoose.Schema(
   {
-    itemId: { type: String, required: true },
-    label: { type: String, default: "" },
-    w: { type: Number, required: true, min: 0 },
-    h: { type: Number, required: true, min: 0 },
-    d: { type: Number, required: true, min: 0 },
-    weight: { type: Number, default: 0, min: 0 },
-    quantity: { type: Number, default: 1, min: 1 },
+    itemCode: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    itemReference: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    width: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    length: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    depth: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    weight: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    boxGroup: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
   },
   { _id: false }
 );
 
 const containerSchema = new mongoose.Schema(
   {
-    boxId: { type: String, required: true },
-    label: { type: String, default: "" },
-    w: { type: Number, required: true, min: 0 },
-    h: { type: Number, required: true, min: 0 },
-    d: { type: Number, required: true, min: 0 },
-    maxWeight: { type: Number, default: 0, min: 0 },
+    reference: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    width: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    length: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    depth: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    maxWeight: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    boxWeight: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    active: {
+      type: Boolean,
+      default: true,
+    },
+
+    maximumBoxes: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
   },
   { _id: false }
 );
-
 const placedItemSchema = new mongoose.Schema(
   {
     itemId: { type: String, required: true },

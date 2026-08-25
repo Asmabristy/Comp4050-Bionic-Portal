@@ -2,102 +2,191 @@ import { config } from "../config.js";
 import { mockPack } from "./mockSolver.js";
 
 /**
- * The only place we talk to FitSolver (POST {SOLVER_URL}/pack).
- * If the agreed interface changes, it changes here and nowhere else.
+ * Convert the Portal's order items into the format expected by FitSolver.
+ *
+ * The Solver currently has no quantity field, so quantity > 1 is expanded
+ * into multiple physical item records.
  */
-
-/** Solver has no concept of quantity, so 3x of item A becomes A#1, A#2, A#3. */
 export function expandItems(items) {
   const expanded = [];
+
   for (const item of items) {
-    const qty = Math.max(1, item.quantity || 1);
-    for (let i = 0; i < qty; i++) {
+    const quantity = Math.max(1, item.quantity || 1);
+
+    for (let i = 0; i < quantity; i++) {
       expanded.push({
-        itemId: qty > 1 ? `${item.itemId}#${i + 1}` : item.itemId,
-        w: item.w,
-        h: item.h,
-        d: item.d,
-        weight: item.weight || 0,
+        itemCode:
+          quantity > 1
+            ? `${item.itemCode}#${i + 1}`
+            : item.itemCode,
+
+        itemReference: item.itemReference,
+
+        width: item.width,
+        length: item.length,
+        depth: item.depth,
+        weight: item.weight,
+
+        ...(item.boxGroup
+          ? { boxGroup: item.boxGroup }
+          : {}),
       });
     }
   }
+
   return expanded;
 }
 
-export function buildPackRequest(order) {
+/**
+ * Build the request expected by @bionic/solver.
+ */
+export function buildSolverRequest(order) {
   return {
-    orderId: order._id.toString(),
+    boxes: order.containers
+      .filter((box) => box.active !== false)
+      .map((box) => ({
+        reference: box.reference,
+        width: box.width,
+        length: box.length,
+        depth: box.depth,
+
+        ...(box.maxWeight != null
+          ? { maxWeight: box.maxWeight }
+          : {}),
+
+        ...(box.boxWeight != null
+          ? { boxWeight: box.boxWeight }
+          : {}),
+
+        ...(box.active != null
+          ? { active: box.active }
+          : {}),
+
+        ...(box.maximumBoxes != null
+          ? { maximumBoxes: box.maximumBoxes }
+          : {}),
+      })),
+
     items: expandItems(order.items),
-    containers: order.containers.map((c) => ({
-      boxId: c.boxId,
-      w: c.w,
-      h: c.h,
-      d: c.d,
-      maxWeight: c.maxWeight || 0,
-    })),
   };
 }
 
-/** Catch a malformed reply here rather than storing junk Visualizer can't render. */
-export function validatePackResponse(body) {
-  if (!body || typeof body !== "object") {
-    throw new Error("Solver returned a non-object response.");
+/**
+ * Convert FitSolver's result into the stable result format used by FitPortal
+ * and later consumed by FitVisualizer.
+ */
+export function normaliseSolverResponse(result, order) {
+  if (!result || typeof result !== "object") {
+    throw new Error("Solver returned an invalid response.");
   }
-  if (body.status !== "success" && body.status !== "error") {
-    throw new Error(`Solver returned an unknown status: ${JSON.stringify(body.status)}`);
-  }
-  if (body.status === "error") return body;
 
-  if (!Array.isArray(body.boxes)) {
-    throw new Error("Solver response is missing a 'boxes' array.");
+  if (!Array.isArray(result.results)) {
+    throw new Error("Solver response is missing the results array.");
   }
-  for (const box of body.boxes) {
-    if (!box.dimensions) throw new Error(`Box ${box.boxId} is missing 'dimensions'.`);
-    if (!Array.isArray(box.items)) throw new Error(`Box ${box.boxId} is missing an 'items' array.`);
-    for (const placed of box.items) {
-      // Visualizer can't place an item without these.
-      if (!placed.position) throw new Error(`Item ${placed.itemId} is missing 'position'.`);
-      if (!placed.dimensions) throw new Error(`Item ${placed.itemId} is missing 'dimensions'.`);
-      if (placed.rotation == null) placed.rotation = "XYZ";
-    }
+
+  if (!Array.isArray(result.failed)) {
+    throw new Error("Solver response is missing the failed array.");
   }
-  if (!Array.isArray(body.unpacked)) body.unpacked = [];
-  return body;
+
+  const containersByReference = new Map(
+    order.containers.map((box) => [box.reference, box])
+  );
+
+  const boxes = result.results.map((resultBox, boxIndex) => {
+    const container =
+      containersByReference.get(resultBox.boxReference);
+
+    return {
+      boxId: resultBox.boxReference,
+
+      dimensions: container
+        ? {
+            w: container.width,
+            h: container.length,
+            d: container.depth,
+          }
+        : null,
+
+      items: (resultBox.placements || []).map(
+        (placement, placementIndex) => ({
+          /*
+           * The current Solver placement response contains geometry but
+           * does not include the item code. Keep a stable generated ID
+           * for now so the Portal/Visualizer can still render it.
+           */
+          itemId: `placement-${boxIndex + 1}-${placementIndex + 1}`,
+
+          position: {
+            x: placement.x,
+            y: placement.y,
+            z: placement.z,
+          },
+
+          rotation: "XYZ",
+
+          dimensions: {
+            w: placement.width,
+            h: placement.length,
+            d: placement.depth,
+          },
+        })
+      ),
+    };
+  });
+
+  return {
+    status: "success",
+
+    message:
+      result.failed.length > 0
+        ? `${result.failed.length} item(s) could not be packed.`
+        : "",
+
+    boxes,
+
+    unpacked: result.failed.map(
+      (item) => item.itemCode
+    ),
+  };
 }
 
+/**
+ * Send an order to either:
+ * - the temporary mock Solver, or
+ * - the real @bionic/solver package.
+ */
 export async function requestPacking(order) {
-  const payload = buildPackRequest(order);
   const startedAt = Date.now();
 
+  const request = buildSolverRequest(order);
+
   if (config.useMockSolver) {
-    const result = mockPack(payload);
-    return { ...validatePackResponse(result), solverMs: Date.now() - startedAt, source: "mock" };
+    const result = mockPack(request);
+
+    return {
+      ...result,
+      solverMs: Date.now() - startedAt,
+      source: "mock",
+    };
   }
 
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), config.solverTimeoutMs);
+ try {
+  const { solve } = await import("@bionic/solver");
 
-  try {
-    const res = await fetch(`${config.solverUrl}/pack`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-      signal: controller.signal,
-    });
+  console.log("[solver] REQUEST:");
+  console.dir(request, { depth: null });
 
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`Solver replied ${res.status}. ${text.slice(0, 200)}`);
-    }
+  const result = await solve(request);
 
-    const body = await res.json();
-    return { ...validatePackResponse(body), solverMs: Date.now() - startedAt, source: "solver" };
-  } catch (err) {
-    if (err.name === "AbortError") {
-      throw new Error(`Solver did not respond within ${config.solverTimeoutMs}ms.`);
-    }
-    throw err;
-  } finally {
-    clearTimeout(timer);
+  console.log("[solver] RAW RESPONSE:");
+  console.dir(result, { depth: null });
+
+  return {
+    ...normaliseSolverResponse(result, order),
+    solverMs: Date.now() - startedAt,
+    source: "bionic-solver",
+  };
+} catch (err) {
+    throw new Error(`FitSolver failed: ${err.message}`);
   }
 }

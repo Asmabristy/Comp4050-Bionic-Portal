@@ -8,12 +8,33 @@ import { User } from "./models/User.js";
 import { Container } from "./models/Container.js";
 
 const CARTONS = [
-  { boxId: "SML", label: "Small mailer", w: 240, h: 160, d: 120, maxWeight: 5000 },
-  { boxId: "MED", label: "Medium carton", w: 400, h: 300, d: 250, maxWeight: 15000 },
-  { boxId: "LRG", label: "Large carton", w: 600, h: 400, d: 400, maxWeight: 25000 },
-  { boxId: "PAL", label: "Pallet box", w: 1200, h: 1000, d: 800, maxWeight: 60000 },
+  {
+    reference: "SML",
+    width: 150,
+    length: 150,
+    depth: 150,
+    maxWeight: 8.5,
+    boxWeight: 0.5,
+    active: true,
+    maximumBoxes: 100,
+  },
+  {
+    reference: "MED",
+    width: 400,
+    length: 400,
+    depth: 400,
+    maxWeight: 15.2,
+    boxWeight: 0.75,
+    active: true,
+  },
+  {
+    reference: "LRG",
+    width: 1200,
+    length: 1200,
+    depth: 1200,
+    active: false,
+  },
 ];
-
 async function run() {
   await connectDb();
 
@@ -30,14 +51,20 @@ async function run() {
   } else {
     console.log(`[seed] user ${email} already exists`);
   }
-
+await Container.deleteMany({});
+console.log("[seed] cleared existing cartons");
   for (const carton of CARTONS) {
-    const exists = await Container.findOne({ boxId: carton.boxId });
-    if (!exists) {
-      await Container.create(carton);
-      console.log(`[seed] added carton ${carton.boxId}`);
-    }
+  const exists = await Container.findOne({
+    reference: carton.reference,
+  });
+
+  if (!exists) {
+    await Container.create(carton);
+    console.log(
+      `[seed] added carton ${carton.reference}`
+    );
   }
+}
 
   await mongoose.disconnect();
   console.log("[seed] done");
