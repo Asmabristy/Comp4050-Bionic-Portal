@@ -34,6 +34,10 @@ export const api = {
 
   listContainers: () => request("/containers"),
   createContainer: (payload) => request("/containers", { method: "POST", body: payload }),
+  deleteContainer: (id) =>
+  request(`/containers/${id}`, {
+    method: "DELETE",
+  }),
 
   listOrders: () => request("/orders"),
   createOrder: (payload) => request("/orders", { method: "POST", body: payload }),

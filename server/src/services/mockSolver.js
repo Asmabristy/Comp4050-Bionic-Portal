@@ -6,112 +6,201 @@
 
 function packIntoBox(container, queue) {
   const placed = [];
+
   let cursorX = 0;
   let cursorY = 0;
   let cursorZ = 0;
+
   let rowDepth = 0;
   let layerHeight = 0;
   let weight = 0;
 
   let i = 0;
+
   while (i < queue.length) {
     const item = queue[i];
-    const overWeight = container.maxWeight > 0 && weight + (item.weight || 0) > container.maxWeight;
 
-    if (overWeight || item.w > container.w || item.h > container.h || item.d > container.d) {
+    const overWeight =
+      container.maxWeight != null &&
+      container.maxWeight > 0 &&
+      weight + (item.weight || 0) > container.maxWeight;
+
+    const tooLarge =
+      item.width > container.width ||
+      item.length > container.length ||
+      item.depth > container.depth;
+
+    if (overWeight || tooLarge) {
       i++;
       continue;
     }
 
-    // Next row along the depth axis.
-    if (cursorX + item.w > container.w) {
+    // Start a new row along the depth axis.
+    if (cursorX + item.width > container.width) {
       cursorX = 0;
       cursorZ += rowDepth;
       rowDepth = 0;
     }
-    // Next layer up.
-    if (cursorZ + item.d > container.d) {
+
+    // Start a new layer.
+    if (cursorZ + item.depth > container.depth) {
       cursorZ = 0;
       cursorY += layerHeight;
       layerHeight = 0;
     }
-    // Box is full.
-    if (cursorY + item.h > container.h) break;
+
+    // No more vertical space in this box.
+    if (cursorY + item.length > container.length) {
+      break;
+    }
 
     placed.push({
-      itemId: item.itemId,
-      position: { x: cursorX, y: cursorY, z: cursorZ },
+      itemId: item.itemCode,
+
+      position: {
+        x: cursorX,
+        y: cursorY,
+        z: cursorZ,
+      },
+
       rotation: "XYZ",
-      dimensions: { w: item.w, h: item.h, d: item.d },
+
+      dimensions: {
+        w: item.width,
+        h: item.length,
+        d: item.depth,
+      },
     });
 
     weight += item.weight || 0;
-    cursorX += item.w;
-    rowDepth = Math.max(rowDepth, item.d);
-    layerHeight = Math.max(layerHeight, item.h);
+
+    cursorX += item.width;
+
+    rowDepth = Math.max(
+      rowDepth,
+      item.depth
+    );
+
+    layerHeight = Math.max(
+      layerHeight,
+      item.length
+    );
+
+    // Remove successfully packed item.
     queue.splice(i, 1);
   }
 
   return placed;
 }
 
-export function mockPack({ orderId, items, containers }) {
-  if (!containers?.length) {
+export function mockPack({ boxes, items }) {
+  if (!boxes?.length) {
     return {
-      orderId,
       status: "error",
-      message: "No container types available to pack into.",
+      message: "No carton types available to pack into.",
       boxes: [],
-      unpacked: items.map((i) => i.itemId),
+      unpacked: items.map((item) => item.itemCode),
     };
   }
 
-  // Biggest first (first-fit-decreasing).
-  const queue = [...items].sort((a, b) => b.w * b.h * b.d - a.w * a.h * a.d);
-  const bySize = [...containers].sort((a, b) => b.w * b.h * b.d - a.w * a.h * a.d);
+  /*
+   * Biggest items first.
+   * This is still only a simple mock algorithm.
+   */
+  const queue = [...items].sort(
+    (a, b) =>
+      b.width * b.length * b.depth -
+      a.width * a.length * a.depth
+  );
+
+  const bySize = [...boxes].sort(
+    (a, b) =>
+      b.width * b.length * b.depth -
+      a.width * a.length * a.depth
+  );
+
   const largest = bySize[0];
 
-  const boxes = [];
+  const packedBoxes = [];
+
   let guard = 0;
 
   while (queue.length > 0 && guard < 50) {
     guard++;
+
     const before = queue.length;
 
-    // Prefer the smallest carton that actually takes something.
+    /*
+     * Prefer the smallest carton that can pack
+     * at least one remaining item.
+     */
     let chosen = null;
-    for (const container of [...bySize].reverse()) {
-      const attempt = packIntoBox(container, [...queue]);
+
+    for (const box of [...bySize].reverse()) {
+      const attempt = packIntoBox(
+        box,
+        [...queue]
+      );
+
       if (attempt.length > 0) {
-        chosen = container;
+        chosen = box;
         break;
       }
     }
 
-    if (!chosen) break;
+    if (!chosen) {
+      break;
+    }
 
-    // Re-run on the live queue so the items actually get removed.
-    const placed = packIntoBox(chosen, queue);
-    if (placed.length === 0) break;
+    /*
+     * Run again using the real queue so successfully
+     * packed items are removed.
+     */
+    const placed = packIntoBox(
+      chosen,
+      queue
+    );
 
-    boxes.push({
-      boxId: chosen.boxId,
-      dimensions: { w: chosen.w, h: chosen.h, d: chosen.d },
+    if (placed.length === 0) {
+      break;
+    }
+
+    packedBoxes.push({
+      boxId: chosen.reference,
+
+      dimensions: {
+        w: chosen.width,
+        h: chosen.length,
+        d: chosen.depth,
+      },
+
       items: placed,
     });
 
-    if (queue.length === before) break; // no progress, bail out
+    if (queue.length === before) {
+      break;
+    }
   }
 
   const oversized = queue.filter(
-    (i) => i.w > largest.w || i.h > largest.h || i.d > largest.d
+    (item) =>
+      item.width > largest.width ||
+      item.length > largest.length ||
+      item.depth > largest.depth
   );
 
   return {
-    orderId,
     status: "success",
-    message: oversized.length ? "Some items do not fit any available carton." : "",
-    boxes,
-    unpacked: queue.map((i) => i.itemId),
+
+    message:
+      oversized.length > 0
+        ? "Some items do not fit any available carton."
+        : "",
+
+    boxes: packedBoxes,
+
+    unpacked: queue.map(
+      (item) => item.itemCode
+    ),
   };
 }

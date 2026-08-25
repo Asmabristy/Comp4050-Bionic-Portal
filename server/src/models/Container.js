@@ -1,15 +1,56 @@
 import mongoose from "mongoose";
 
 /** The standing catalogue of carton types the warehouse stocks. */
+
 const containerSchema = new mongoose.Schema(
   {
-    boxId: { type: String, required: true, unique: true, trim: true },
-    label: { type: String, required: true, trim: true },
-    w: { type: Number, required: true, min: 0 },
-    h: { type: Number, required: true, min: 0 },
-    d: { type: Number, required: true, min: 0 },
-    maxWeight: { type: Number, default: 0, min: 0 },
-    active: { type: Boolean, default: true },
+    reference: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+    },
+
+    width: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    length: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    depth: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    maxWeight: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    boxWeight: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    active: {
+      type: Boolean,
+      default: true,
+    },
+
+    maximumBoxes: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
   },
   { timestamps: true }
 );
@@ -17,13 +58,14 @@ const containerSchema = new mongoose.Schema(
 containerSchema.methods.toPublic = function () {
   return {
     id: this._id.toString(),
-    boxId: this.boxId,
-    label: this.label,
-    w: this.w,
-    h: this.h,
-    d: this.d,
+    reference: this.reference,
+    width: this.width,
+    length: this.length,
+    depth: this.depth,
     maxWeight: this.maxWeight,
+    boxWeight: this.boxWeight,
     active: this.active,
+    maximumBoxes: this.maximumBoxes,
   };
 };
 
