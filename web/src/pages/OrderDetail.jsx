@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
-import {
-  PackingPreview,
-  volumeFill,
-} from "../components/PackingPreview.jsx";
 
 export function OrderDetail() {
   const { id } = useParams();
@@ -67,9 +63,78 @@ export function OrderDetail() {
 
   const result = order.result;
 
+  /*
+   * Packing summary values.
+   * These are derived from the actual stored Solver result.
+   */
+  const cartonsUsed =
+    result?.boxes?.length ?? 0;
+
+  const packedItems =
+    result?.boxes?.reduce(
+      (total, box) =>
+        total + (box.items?.length ?? 0),
+      0
+    ) ?? 0;
+
+  const unpackedItems =
+    result?.unpacked?.length ?? 0;
+
+  const selectedCartons = result?.boxes?.length
+    ? [
+        ...new Set(
+          result.boxes
+            .map((box) => box.boxId)
+            .filter(Boolean)
+        ),
+      ].join(", ")
+    : "—";
+
+  /*
+   * Calculate overall volume utilization using
+   * the same box information used by the 2D preview.
+   */
+ const utilization =
+  result?.boxes?.length
+    ? result.boxes.reduce(
+        (total, box) =>
+          total +
+          (typeof box.utilization === "number"
+            ? box.utilization
+            : 0),
+        0
+      ) / result.boxes.length
+    : null;
+  /*
+   * Some Solver result formats expose totalWeight
+   * on each box. If available, display it.
+   */
+  const totalWeight =
+    result?.boxes?.length &&
+    result.boxes.every(
+      (box) =>
+        typeof box.totalWeight === "number"
+    )
+      ? result.boxes.reduce(
+          (total, box) =>
+            total + box.totalWeight,
+          0
+        )
+      : null;
+
   return (
     <>
-      <div className="page-head">
+      {/* Back navigation */}
+      <button
+        type="button"
+        className="order-back-button"
+        onClick={() => navigate("/orders")}
+      >
+        ← Back to Orders
+      </button>
+
+      {/* Order heading */}
+      <div className="page-head order-detail-head">
         <div>
           <div className="eyebrow">
             Order
@@ -115,18 +180,28 @@ export function OrderDetail() {
 
       {result?.source === "mock" && (
         <div className="notice notice--hivis">
-          Packed by the built-in stand-in solver,
-          not FitSolver. Set{" "}
+          Packed by the built-in stand-in
+          solver, not FitSolver. Set{" "}
           <span className="mono">
             USE_MOCK_SOLVER=false
           </span>{" "}
-          once the solver package is ready.
+          once the Solver package is ready.
         </div>
       )}
 
+      {/* =====================================================
+          ORDER INFORMATION / MANIFEST
+          ===================================================== */}
+
       <div className="sheet">
         <div className="sheet__head">
-          <h2>Manifest</h2>
+          <div>
+            <h2>Manifest</h2>
+
+            <p className="muted">
+              Order and packing requirements
+            </p>
+          </div>
         </div>
 
         <div className="rows">
@@ -157,52 +232,15 @@ export function OrderDetail() {
 
           <div className="row">
             <div className="row__label">
-              Cartons used
+              Order status
             </div>
 
-            <div className="mono">
-              {result?.boxes?.length ?? "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Unpacked
-            </div>
-
-            <div className="mono">
-              {result
-                ? result.unpacked?.length
-                  ? result.unpacked.join(", ")
-                  : "none"
-                : "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Solve time
-            </div>
-
-            <div className="mono">
-              {result
-                ? `${result.solverMs} ms`
-                : "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Solver
-            </div>
-
-            <div className="mono">
-              {result?.source ===
-              "bionic-solver"
-                ? "Bionic FitSolver"
-                : result?.source === "mock"
-                  ? "Mock solver"
-                  : "—"}
+            <div>
+              <span
+                className={`tag tag--${order.status}`}
+              >
+                {order.status}
+              </span>
             </div>
           </div>
         </div>
@@ -220,91 +258,156 @@ export function OrderDetail() {
         </div>
       )}
 
-      {result?.status === "success" &&
-        result.boxes?.length > 0 && (
-          <div className="sheet">
-            <div className="sheet__head">
-              <h2>Packing plan</h2>
+      {/* =====================================================
+          PACKING RESULT
+          ===================================================== */}
 
-              <span
-                className="mono muted"
-                style={{
-                  fontSize: "0.72rem",
-                }}
-              >
-                Top-down · mm
-              </span>
+      {result && (
+        <div className="sheet packing-result">
+          <div className="sheet__head">
+            <div>
+              <h2>Packing Result</h2>
+
+              <p className="muted">
+                Result generated by the packing
+                algorithm
+              </p>
             </div>
 
-            <div className="boxgrid">
-              {result.boxes.map(
-                (box, index) => {
-                  const fill =
-                    volumeFill(box);
-
-                  return (
-                    <div
-                      className="boxcard"
-                      key={`${box.boxId}-${index}`}
-                    >
-                      <div className="boxcard__head">
-                        <span className="boxcard__id">
-                          {box.boxId} ·{" "}
-                          {index + 1}
-                        </span>
-
-                        <span
-                          className="mono muted"
-                          style={{
-                            fontSize:
-                              "0.72rem",
-                          }}
-                        >
-                          {box.items.length}{" "}
-                          items
-                        </span>
-                      </div>
-
-                      <PackingPreview
-                        box={box}
-                      />
-
-                      <div className="fillbar">
-                        <div
-                          className="fillbar__val"
-                          style={{
-                            width: `${fill}%`,
-                          }}
-                        />
-                      </div>
-
-                      <div className="fillnote">
-                        <span>
-                          Volume used
-                        </span>
-
-                        <span>
-                          {fill}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-              )}
-            </div>
-
-            <div
-              className="viz-slot"
-              style={{
-                marginTop: 20,
-              }}
+            <span
+              className={`tag ${
+                result.status === "success"
+                  ? "tag--packed"
+                  : "tag--failed"
+              }`}
             >
-              FitVisualizer 3D view mounts
-              here — reads GET
-              /api/orders/{order.id}/result
+              {result.status === "success"
+                ? "Packed"
+                : result.status}
+            </span>
+          </div>
+
+          <div className="packing-result__stats">
+            <div className="packing-result__stat">
+              <span>Cartons used</span>
+              <strong>{cartonsUsed}</strong>
+            </div>
+
+            <div className="packing-result__stat">
+              <span>Items packed</span>
+              <strong>{packedItems}</strong>
+            </div>
+
+            <div className="packing-result__stat">
+              <span>Unpacked</span>
+              <strong>{unpackedItems}</strong>
+            </div>
+
+            <div className="packing-result__stat">
+              <span>Utilization</span>
+             <strong>
+           {utilization !== null
+       ? `${(utilization * 100).toFixed(1)}%`
+               : "—"}
+               </strong>
             </div>
           </div>
-        )}
+
+          <div className="packing-result__details">
+            <div className="packing-result__detail">
+              <span>
+                Carton selected
+              </span>
+
+              <strong className="mono">
+                {selectedCartons}
+              </strong>
+            </div>
+
+            <div className="packing-result__detail">
+              <span>
+                Total weight
+              </span>
+
+              <strong className="mono">
+                {totalWeight !== null
+                  ? `${totalWeight.toFixed(2)} kg`
+                  : "—"}
+              </strong>
+            </div>
+
+            <div className="packing-result__detail">
+              <span>
+                Solve time
+              </span>
+
+              <strong className="mono">
+                {result.solverMs != null
+                  ? `${result.solverMs} ms`
+                  : "—"}
+              </strong>
+            </div>
+
+            <div className="packing-result__detail">
+              <span>
+                Solver
+              </span>
+
+              <strong>
+                {result.source ===
+                "bionic-solver"
+                  ? "Bionic FitSolver"
+                  : result.source === "mock"
+                    ? "Mock solver"
+                    : "Bionic FitSolver"}
+              </strong>
+            </div>
+          </div>
+        </div>
+      )}
+
+     {result?.status === "success" && (
+  <div className="sheet">
+    <div className="sheet__head">
+      <div>
+        <h2>3D Visualization</h2>
+
+        <p className="muted">
+          Explore the packing arrangement in the FitVisualizer view.
+        </p>
+      </div>
+    </div>
+
+    <div className="visualizer-placeholder">
+      <div className="visualizer-placeholder__content">
+        <div className="visualizer-placeholder__icon">
+          3D
+        </div>
+
+        <div>
+          <h3>Interactive packing view</h3>
+
+          <p>
+            The FitVisualizer package will display the Solver-generated
+            carton and item placements here.
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        className="visualizer-button"
+        disabled
+        title="FitVisualizer integration will be added later"
+      >
+        View in 3D
+      </button>
+    </div>
+  </div>
+)}
+      {/* =====================================================
+          ITEMS
+          ===================================================== */}
 
       <div className="sheet">
         <div className="sheet__head">
@@ -312,8 +415,7 @@ export function OrderDetail() {
             <h2>Items</h2>
 
             <p className="muted">
-              Dimensions in mm · Weight
-              in kg
+              Dimensions in mm · Weight in kg
             </p>
           </div>
         </div>

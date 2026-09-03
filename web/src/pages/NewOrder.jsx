@@ -18,11 +18,20 @@ export function NewOrder() {
   const [items, setItems] = useState([blankItem()]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const [mode, setMode] = useState("manual");
+  const [csvFileName, setCsvFileName] = useState("");
+
   const navigate = useNavigate();
 
   const updateItem = (index, key, value) => {
     const next = [...items];
-    next[index] = { ...next[index], [key]: value };
+
+    next[index] = {
+      ...next[index],
+      [key]: value,
+    };
+
     setItems(next);
   };
 
@@ -31,7 +40,117 @@ export function NewOrder() {
   };
 
   const removeItem = (index) => {
-    setItems(items.filter((_, i) => i !== index));
+    setItems(
+      items.filter((_, itemIndex) => itemIndex !== index)
+    );
+  };
+
+  const switchToManual = () => {
+    setMode("manual");
+    setError("");
+  };
+
+  const switchToCsv = () => {
+    setMode("csv");
+    setError("");
+  };
+
+  const importCsv = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setError("");
+    setCsvFileName(file.name);
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "").trim();
+
+        if (!text) {
+          setError("The selected CSV file is empty.");
+          return;
+        }
+
+        const lines = text
+          .split(/\r?\n/)
+          .filter((line) => line.trim());
+
+        if (lines.length < 2) {
+          setError(
+            "The CSV needs a header row and at least one item."
+          );
+          return;
+        }
+
+        const headers = lines[0]
+          .split(",")
+          .map((header) => header.trim());
+
+        const requiredHeaders = [
+          "itemCode",
+          "itemReference",
+          "width",
+          "length",
+          "depth",
+          "weight",
+        ];
+
+        const missingHeaders = requiredHeaders.filter(
+          (header) => !headers.includes(header)
+        );
+
+        if (missingHeaders.length > 0) {
+          setError(
+            `Missing CSV columns: ${missingHeaders.join(", ")}`
+          );
+          return;
+        }
+
+        const importedItems = lines
+          .slice(1)
+          .map((line) => {
+            const values = line
+              .split(",")
+              .map((value) => value.trim());
+
+            const row = {};
+
+            headers.forEach((header, index) => {
+              row[header] = values[index] ?? "";
+            });
+
+            return {
+              itemCode: row.itemCode ?? "",
+              itemReference: row.itemReference ?? "",
+              width: row.width ?? "",
+              length: row.length ?? "",
+              depth: row.depth ?? "",
+              weight: row.weight ?? "",
+              quantity: row.quantity || 1,
+              boxGroup: row.boxGroup ?? "",
+            };
+          })
+          .filter((item) => item.itemCode);
+
+        if (importedItems.length === 0) {
+          setError(
+            "No valid item rows were found in the CSV."
+          );
+          return;
+        }
+
+        setItems(importedItems);
+      } catch {
+        setError("The CSV file could not be imported.");
+      }
+    };
+
+    reader.readAsText(file);
   };
 
   const save = async (thenPack) => {
@@ -51,11 +170,13 @@ export function NewOrder() {
       }));
 
     if (!reference.trim()) {
-      return setError("Give the order a reference.");
+      setError("Give the order a reference.");
+      return;
     }
 
     if (cleaned.length === 0) {
-      return setError("Add at least one item.");
+      setError("Add at least one item.");
+      return;
     }
 
     const missingReference = cleaned.find(
@@ -63,9 +184,10 @@ export function NewOrder() {
     );
 
     if (missingReference) {
-      return setError(
+      setError(
         `${missingReference.itemCode} needs an item reference.`
       );
+      return;
     }
 
     const badDimensions = cleaned.find(
@@ -78,9 +200,10 @@ export function NewOrder() {
     );
 
     if (badDimensions) {
-      return setError(
+      setError(
         `${badDimensions.itemCode} needs width, length, and depth above zero.`
       );
+      return;
     }
 
     const badWeight = cleaned.find(
@@ -90,9 +213,10 @@ export function NewOrder() {
     );
 
     if (badWeight) {
-      return setError(
+      setError(
         `${badWeight.itemCode} needs a valid weight.`
       );
+      return;
     }
 
     setBusy(true);
@@ -118,7 +242,6 @@ export function NewOrder() {
     <>
       <div className="page-head">
         <div>
-          <div className="eyebrow">Operations</div>
           <h1>New order</h1>
         </div>
       </div>
@@ -128,6 +251,72 @@ export function NewOrder() {
           {error}
         </div>
       )}
+
+      {/* Manual / CSV tabs */}
+
+      <div className="new-order-tabs">
+        <button
+          type="button"
+          className={
+            mode === "manual"
+              ? "new-order-tab new-order-tab--active"
+              : "new-order-tab"
+          }
+          onClick={switchToManual}
+        >
+          Manual Entry
+        </button>
+
+        <button
+          type="button"
+          className={
+            mode === "csv"
+              ? "new-order-tab new-order-tab--active"
+              : "new-order-tab"
+          }
+          onClick={switchToCsv}
+        >
+          CSV Import
+        </button>
+      </div>
+
+      {/* CSV upload */}
+
+     {mode === "csv" && (
+  <div className="sheet csv-import-card">
+    <div className="sheet__head">
+      <div>
+        <h2>Import CSV</h2>
+      </div>
+    </div>
+
+    <div className="csv-upload">
+      <input
+        id="csv-file"
+        type="file"
+        accept=".csv,text/csv"
+        onChange={importCsv}
+      />
+
+      {csvFileName && (
+        <span className="csv-file-selected">
+          Selected: {csvFileName}
+        </span>
+      )}
+    </div>
+
+    <div className="csv-format-note">
+      <span>Required CSV columns </span>
+
+      <code>
+        (itemCode, itemReference, width, length, depth,
+        weight, quantity, boxGroup)
+      </code>
+    </div>
+  </div>
+)}
+
+      {/* Order reference */}
 
       <div className="sheet">
         <div
@@ -142,16 +331,31 @@ export function NewOrder() {
             id="reference"
             value={reference}
             placeholder="PO-40128"
-            onChange={(e) =>
-              setReference(e.target.value)
+            onChange={(event) =>
+              setReference(event.target.value)
             }
           />
         </div>
       </div>
 
+      {/* Editable items table */}
+
       <div className="sheet">
         <div className="sheet__head">
-          <h2>Items</h2>
+          <div>
+            <h2>
+              {mode === "csv"
+                ? "Imported Items"
+                : "Items"}
+            </h2>
+
+            {mode === "csv" && (
+              <p className="muted">
+                You can edit any imported value before
+                creating the order.
+              </p>
+            )}
+          </div>
 
           <span
             className="mono muted"
@@ -179,18 +383,18 @@ export function NewOrder() {
 
             <tbody>
               {items.map((item, index) => (
-                <tr key={index}>
+               <tr key={index}>
                   <td>
                     <input
                       value={item.itemCode}
                       placeholder={`ITM-${String(
                         index + 1
                       ).padStart(3, "0")}`}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         updateItem(
                           index,
                           "itemCode",
-                          e.target.value
+                          event.target.value
                         )
                       }
                       aria-label={`Item ${
@@ -203,11 +407,11 @@ export function NewOrder() {
                     <input
                       value={item.itemReference}
                       placeholder="Widget A"
-                      onChange={(e) =>
+                      onChange={(event) =>
                         updateItem(
                           index,
                           "itemReference",
-                          e.target.value
+                          event.target.value
                         )
                       }
                       aria-label={`Item ${
@@ -228,11 +432,11 @@ export function NewOrder() {
                         min="0"
                         step="any"
                         value={item[key]}
-                        onChange={(e) =>
+                        onChange={(event) =>
                           updateItem(
                             index,
                             key,
-                            e.target.value
+                            event.target.value
                           )
                         }
                         aria-label={`Item ${
@@ -248,11 +452,11 @@ export function NewOrder() {
                       min="1"
                       step="1"
                       value={item.quantity}
-                      onChange={(e) =>
+                      onChange={(event) =>
                         updateItem(
                           index,
                           "quantity",
-                          e.target.value
+                          event.target.value
                         )
                       }
                       aria-label={`Item ${
@@ -265,11 +469,11 @@ export function NewOrder() {
                     <input
                       value={item.boxGroup}
                       placeholder="GROUP-A"
-                      onChange={(e) =>
+                      onChange={(event) =>
                         updateItem(
                           index,
                           "boxGroup",
-                          e.target.value
+                          event.target.value
                         )
                       }
                       aria-label={`Item ${
@@ -280,6 +484,7 @@ export function NewOrder() {
 
                   <td className="text-right">
                     <button
+                      type="button"
                       className="btn-small btn-danger"
                       onClick={() =>
                         removeItem(index)
@@ -303,6 +508,7 @@ export function NewOrder() {
           className="stack-actions"
         >
           <button
+            type="button"
             className="btn-ghost btn-small"
             onClick={addItem}
           >
@@ -311,8 +517,11 @@ export function NewOrder() {
         </div>
       </div>
 
+      {/* Save actions */}
+
       <div className="stack-actions">
         <button
+          type="button"
           onClick={() => save(true)}
           disabled={busy}
         >
@@ -322,6 +531,7 @@ export function NewOrder() {
         </button>
 
         <button
+          type="button"
           className="btn-ghost"
           onClick={() => save(false)}
           disabled={busy}

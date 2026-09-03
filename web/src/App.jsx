@@ -7,6 +7,7 @@ import { Orders } from "./pages/Orders.jsx";
 import { NewOrder } from "./pages/NewOrder.jsx";
 import { OrderDetail } from "./pages/OrderDetail.jsx";
 import { Cartons } from "./pages/Cartons.jsx";
+import { Administration } from "./pages/Administration.jsx";
 
 function Gate() {
   const { user, checking } = useAuth();
@@ -31,7 +32,8 @@ function Gate() {
         <Route path="/orders/:id" element={<OrderDetail />} />
 
         <Route path="/cartons" element={<Cartons />} />
-
+        <Route
+       path="/administration" element={<Administration />}/>
         <Route
           path="/"
           element={<Navigate to="/dashboard" replace />}

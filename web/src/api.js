@@ -32,13 +32,30 @@ export const api = {
   login: (payload) => request("/auth/login", { method: "POST", body: payload }),
   me: () => request("/auth/me"),
 
-  listContainers: () => request("/containers"),
-  createContainer: (payload) => request("/containers", { method: "POST", body: payload }),
-  deleteContainer: (id) =>
+  listContainers: (includeInactive = false) =>
+  request(
+    includeInactive
+      ? "/containers?includeInactive=true"
+      : "/containers"
+  ),
+
+createContainer: (payload) =>
+  request("/containers", {
+    method: "POST",
+    body: payload,
+  }),
+
+updateContainer: (id, payload) =>
+  request(`/containers/${id}`, {
+    method: "PATCH",
+    body: payload,
+  }),
+
+deleteContainer: (id) =>
   request(`/containers/${id}`, {
     method: "DELETE",
   }),
-
+  
   listOrders: () => request("/orders"),
   createOrder: (payload) => request("/orders", { method: "POST", body: payload }),
   getOrder: (id) => request(`/orders/${id}`),

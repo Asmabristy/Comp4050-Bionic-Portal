@@ -107,14 +107,21 @@ export function normaliseSolverResponse(result, order) {
           }
         : null,
 
+      totalWeight: resultBox.totalWeight ?? null,
+
+      utilization: resultBox.utilization ?? null,
+
       items: (resultBox.placements || []).map(
         (placement, placementIndex) => ({
-          /*
-           * The current Solver placement response contains geometry but
-           * does not include the item code. Keep a stable generated ID
-           * for now so the Portal/Visualizer can still render it.
-           */
-          itemId: `placement-${boxIndex + 1}-${placementIndex + 1}`,
+          itemId:
+            placement.itemReference ||
+            placement.itemCode ||
+            `placement-${boxIndex + 1}-${placementIndex + 1}`,
+
+          itemCode: placement.itemCode ?? null,
+
+          itemReference:
+            placement.itemReference ?? null,
 
           position: {
             x: placement.x,
@@ -147,9 +154,11 @@ export function normaliseSolverResponse(result, order) {
     unpacked: result.failed.map(
       (item) => item.itemCode
     ),
+
+    algorithmUs: result.algorithmUs ?? null,
+    serverUs: result.serverUs ?? null,
   };
 }
-
 /**
  * Send an order to either:
  * - the temporary mock Solver, or

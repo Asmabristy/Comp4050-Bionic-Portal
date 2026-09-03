@@ -108,13 +108,32 @@ const containerSchema = new mongoose.Schema(
 );
 const placedItemSchema = new mongoose.Schema(
   {
-    itemId: { type: String, required: true },
+    itemId: {
+      type: String,
+      required: true,
+    },
+
+    itemCode: {
+      type: String,
+      default: null,
+    },
+
+    itemReference: {
+      type: String,
+      default: null,
+    },
+
     position: {
       x: { type: Number, required: true },
       y: { type: Number, required: true },
       z: { type: Number, required: true },
     },
-    rotation: { type: String, default: "XYZ" },
+
+    rotation: {
+      type: String,
+      default: "XYZ",
+    },
+
     dimensions: {
       w: { type: Number, required: true },
       h: { type: Number, required: true },
@@ -127,11 +146,25 @@ const placedItemSchema = new mongoose.Schema(
 const packedBoxSchema = new mongoose.Schema(
   {
     boxId: { type: String, required: true },
+
     dimensions: {
       w: { type: Number, required: true },
       h: { type: Number, required: true },
       d: { type: Number, required: true },
     },
+
+    totalWeight: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
+    utilization: {
+      type: Number,
+      default: null,
+      min: 0,
+    },
+
     items: [placedItemSchema],
   },
   { _id: false }
