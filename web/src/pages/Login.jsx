@@ -89,11 +89,7 @@ export function Login() {
                 : "Create your account"}
             </h1>
 
-            <p>
-              {mode === "signin"
-                ? "Access orders, packing results and Bionic Portal operations."
-                : "Create an account to access Bionic Portal."}
-            </p>
+           
           </div>
 
           {error && (

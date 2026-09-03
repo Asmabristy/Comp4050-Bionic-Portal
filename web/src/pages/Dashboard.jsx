@@ -62,13 +62,7 @@ export function Dashboard() {
          ========================= */}
       <section className="dashboard-header">
         <div>
-          <p className="dashboard-eyebrow">Overview</p>
-
           <h1>Dashboard</h1>
-
-          <p className="dashboard-description">
-            Monitor orders and packing activity across Bionic Portal.
-          </p>
         </div>
 
         <button

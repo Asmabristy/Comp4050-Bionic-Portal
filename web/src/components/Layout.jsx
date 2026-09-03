@@ -10,8 +10,7 @@ const handleSignOut = () => {
   navigate("/login");
 };
 
-  const canSeeAdmin =
-    user?.role === "supervisor" || user?.role === "admin";
+ const canSeeAdmin = true;
 
   return (
     <div className="app-shell">
@@ -36,12 +35,13 @@ const handleSignOut = () => {
             Dashboard
           </NavLink>
 
-          <NavLink
-            to="/orders"
-            className={({ isActive }) =>
-              isActive ? "nav-link nav-link--active" : "nav-link"
-            }
-          >
+        <NavLink
+         to="/orders"
+        end
+        className={({ isActive }) =>
+        isActive ? "nav-link nav-link--active" : "nav-link"
+  }
+>
             Orders
           </NavLink>
 
