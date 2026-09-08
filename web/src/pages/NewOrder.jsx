@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import { useAuth } from "../auth.jsx";
 
 const blankItem = () => ({
   itemCode: "",
@@ -23,6 +24,9 @@ export function NewOrder() {
   const [csvFileName, setCsvFileName] = useState("");
 
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const canRunSolver = user?.role === "supervisor";
 
   const updateItem = (index, key, value) => {
     const next = [...items];
@@ -520,15 +524,15 @@ export function NewOrder() {
       {/* Save actions */}
 
       <div className="stack-actions">
-        <button
-          type="button"
-          onClick={() => save(true)}
-          disabled={busy}
-        >
-          {busy
-            ? "Packing…"
-            : "Save and pack"}
-        </button>
+        {canRunSolver && (
+          <button
+            type="button"
+            onClick={() => save(true)}
+            disabled={busy}
+          >
+            {busy ? "Packing…" : "Save and pack"}
+          </button>
+        )}
 
         <button
           type="button"
