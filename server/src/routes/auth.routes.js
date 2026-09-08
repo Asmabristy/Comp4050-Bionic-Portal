@@ -14,8 +14,14 @@ authRouter.post(
     if (!email || !name || !password) {
       throw new HttpError(400, "Enter a name, email, and password.");
     }
-    if (password.length < 8) {
-      throw new HttpError(400, "Passwords need at least 8 characters.");
+    const strongPassword =
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,}$/;
+
+    if (!strongPassword.test(password)) {
+      throw new HttpError(
+        400,
+        "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character."
+      );
     }
 
     const existing = await User.findOne({ email: email.toLowerCase() });
