@@ -33,7 +33,14 @@ function Gate() {
 
         <Route path="/cartons" element={<Cartons />} />
         <Route
-       path="/administration" element={<Administration />}/>
+          path="/administration" element={
+            user?.role === "supervisor" ? (
+              <Administration />
+              ) : (
+                <Navigate to="/dashboard" replace />
+              )
+            }
+          />
         <Route
           path="/"
           element={<Navigate to="/dashboard" replace />}

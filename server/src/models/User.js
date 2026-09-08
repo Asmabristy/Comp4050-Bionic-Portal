@@ -14,7 +14,7 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: true },
     role: {
       type: String,
-      enum: ["operator", "admin"],
+      enum: ["operator", "supervisor", "admin"],
       default: "operator",
     },
   },

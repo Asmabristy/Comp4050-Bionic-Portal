@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import FitVisualiser from "@bionic/visualiser";
+import { useAuth } from "../auth.jsx";
 
 export function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canRunSolver = user?.role === "supervisor";
 
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
@@ -157,17 +160,19 @@ export function OrderDetail() {
             {order.status}
           </span>
 
-          <button
-            type="button"
-            onClick={pack}
-            disabled={busy}
-          >
-            {busy
-              ? "Packing…"
-              : result
-                ? "Re-pack"
-                : "Pack this order"}
-          </button>
+          {canRunSolver && (
+            <button
+              type="button"
+              onClick={pack}
+              disabled={busy}
+            >
+              {busy
+                ? "Packing…"
+                : result
+                  ? "Re-pack"
+                  : "Pack this order"}
+            </button>
+          )}
 
           <button
             type="button"
