@@ -45,7 +45,7 @@ async function run() {
       email,
       name: "Demo Operator",
       passwordHash: await User.hashPassword("perfectfit"),
-      role: "admin",
+      role: "operator",
     });
     console.log(`[seed] created user ${email} / perfectfit`);
   } else {
