@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import FitVisualiser from "@bionic/visualiser";
 
 export function OrderDetail() {
   const { id } = useParams();
@@ -9,6 +10,7 @@ export function OrderDetail() {
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [show3D, setShow3D] = useState(false);
 
   const load = () =>
     api
@@ -19,6 +21,11 @@ export function OrderDetail() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // A different order means the open 3D view no longer matches what's on screen.
+  useEffect(() => {
+    setShow3D(false);
   }, [id]);
 
   const pack = async () => {
@@ -388,8 +395,9 @@ export function OrderDetail() {
           <h3>Interactive packing view</h3>
 
           <p>
-            The FitVisualizer package will display the Solver-generated
-            carton and item placements here.
+            {show3D
+              ? "Drag to rotate, scroll to zoom, and tap an item for its dimensions."
+              : "Open the FitVisualizer view to inspect the Solver's carton and item placements."}
           </p>
         </div>
       </div>
@@ -397,12 +405,19 @@ export function OrderDetail() {
       <button
         type="button"
         className="visualizer-button"
-        disabled
-        title="FitVisualizer integration will be added later"
+        onClick={() => setShow3D((open) => !open)}
+        aria-expanded={show3D}
+        aria-controls="fit-visualiser"
       >
-        View in 3D
+        {show3D ? "Hide 3D" : "View in 3D"}
       </button>
     </div>
+
+    {show3D && (
+      <div className="visualizer-stage" id="fit-visualiser">
+        <FitVisualiser result={result} />
+      </div>
+    )}
   </div>
 )}
       {/* =====================================================
