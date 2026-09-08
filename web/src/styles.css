@@ -2050,6 +2050,27 @@ label {
 }
 
 
+/* Mounted FitVisualiser. Its own .app is height:100dvh for standalone use,
+   so cap it to the slot when embedded in the order sheet. */
+
+.visualizer-stage {
+  margin-top: 18px;
+
+  border-radius: 15px;
+  overflow: hidden;
+}
+
+.visualizer-stage .app {
+  height: 460px;
+}
+
+@media (max-width: 900px) {
+  .visualizer-stage .app {
+    height: 380px;
+  }
+}
+
+
 /* =========================================================
    RESPONSIVE ORDER DETAILS
    ========================================================= */
