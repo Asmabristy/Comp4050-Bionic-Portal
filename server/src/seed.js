@@ -51,8 +51,31 @@ async function run() {
   } else {
     console.log(`[seed] user ${email} already exists`);
   }
-await Container.deleteMany({});
-console.log("[seed] cleared existing cartons");
+
+  const supervisorEmail = "supervisor@thomax.com";
+  let supervisor = await User.findOne({
+    email: supervisorEmail,
+  });
+
+  if (!supervisor) {
+    supervisor = await User.create({
+      email: supervisorEmail,
+      name: "Demo Supervisor",
+      passwordHash: await User.hashPassword("Demo@1234"),
+      role: "supervisor",
+    });
+
+    console.log(
+      `[seed] created supervisor ${supervisorEmail} / Demo@1234`
+    );
+  } else {
+    console.log(
+      `[seed] supervisor ${supervisorEmail} already exists`
+    );
+  }
+
+  await Container.deleteMany({});
+  console.log("[seed] cleared existing cartons");
   for (const carton of CARTONS) {
   const exists = await Container.findOne({
     reference: carton.reference,
