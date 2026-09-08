@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { Order } from "../models/Order.js";
 import { Container } from "../models/Container.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireSupervisor } from "../middleware/auth.js";
 import { asyncRoute, HttpError } from "../middleware/errors.js";
 import { requestPacking } from "../services/solverClient.js";
 
@@ -247,6 +247,7 @@ ordersRouter.get(
  */
 ordersRouter.post(
   "/:id/pack",
+  requireSupervisor,
   asyncRoute(async (req, res) => {
     const order = await findOwnedOrder(req);
 

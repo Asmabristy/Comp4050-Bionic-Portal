@@ -10,7 +10,7 @@ const handleSignOut = () => {
   navigate("/login");
 };
 
- const canSeeAdmin = true;
+ const canSeeAdmin = user?.role === "supervisor";
 
   return (
     <div className="app-shell">

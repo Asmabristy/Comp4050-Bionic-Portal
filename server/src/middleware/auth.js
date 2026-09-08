@@ -34,3 +34,14 @@ export function requireAdmin(req, res, next) {
   }
   next();
 }
+
+/** Use after requireAuth. */
+export function requireSupervisor(req, res, next) {
+  if (req.user?.role !== "supervisor") {
+    return res.status(403).json({
+      error: "Only supervisors can run the packing algorithm.",
+    });
+  }
+
+  next();
+}
