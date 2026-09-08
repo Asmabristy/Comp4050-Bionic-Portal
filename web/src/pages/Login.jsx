@@ -172,6 +172,14 @@ export function Login() {
                     : "Show"}
                 </button>
               </div>
+
+
+              {mode === "signup" && (
+                <p className="muted">
+                  Password must be at least 8 characters and include uppercase and lowercase
+                  letters, a number, and a special character.
+                </p>
+              )}
             </div>
 
             <button
