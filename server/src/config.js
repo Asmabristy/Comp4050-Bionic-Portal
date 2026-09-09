@@ -12,7 +12,12 @@ export const config = {
   solverUrl: process.env.SOLVER_URL || "http://localhost:5000",
   solverTimeoutMs: Number(process.env.SOLVER_TIMEOUT_MS || 15000),
   useMockSolver: String(process.env.USE_MOCK_SOLVER || "true") === "true",
-  webOrigin: process.env.WEB_ORIGIN || "http://localhost:5173",
+  // Comma-separated list, so local dev and a deployed frontend can both be
+  // allowed without swapping this value between environments.
+  webOrigins: (process.env.WEB_ORIGIN || "http://localhost:5173,http://localhost:5174")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean),
 };
 
 if (!config.supabaseUrl || !config.supabaseServiceKey) {

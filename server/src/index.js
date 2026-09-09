@@ -9,7 +9,17 @@ import { notFound, errorHandler } from "./middleware/errors.js";
 
 const app = express();
 
-app.use(cors({ origin: config.webOrigin, credentials: true }));
+app.use(
+  cors({
+    // Allow any origin in the configured list. Requests with no Origin header
+    // (curl, server-to-server) pass through too.
+    origin(origin, callback) {
+      if (!origin || config.webOrigins.includes(origin)) return callback(null, true);
+      callback(new Error(`Origin ${origin} is not allowed by CORS.`));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/health", (req, res) => {
