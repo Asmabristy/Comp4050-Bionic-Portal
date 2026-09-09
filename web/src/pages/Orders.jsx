@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import { Icon } from "../components/Icon.jsx";
+import { PageHeader, SectionHeader } from "../components/PageHeader.jsx";
 
 export function Orders() {
   const [orders, setOrders] = useState([]);
@@ -26,67 +28,57 @@ export function Orders() {
       .includes(search.trim().toLowerCase());
 
     const matchesStatus =
-      statusFilter === "all" ||
-      order.status === statusFilter;
+      statusFilter === "all" || order.status === statusFilter;
 
     return matchesSearch && matchesStatus;
   });
+
+  const filtersApplied = search.trim() !== "" || statusFilter !== "all";
 
   const clearFilters = () => {
     setSearch("");
     setStatusFilter("all");
   };
 
-  const renderOrdersContent = () => {
+  const renderContent = () => {
     if (loading) {
       return (
-        <p className="muted mono">
-          Loading…
-        </p>
+        <div className="emptystate">
+          <p className="emptystate__text">Loading orders…</p>
+        </div>
       );
     }
 
     if (orders.length === 0) {
       return (
-        <div className="empty">
-          <p>
-            No orders yet. Define one to send it
-            to the solver.
+        <div className="emptystate">
+          <div className="tile tone-grey">
+            <Icon name="orders" size={20} />
+          </div>
+          <p className="emptystate__title">No orders yet</p>
+          <p className="emptystate__text">
+            Create your first order to see it here.
           </p>
-
-          <button
-            type="button"
-            onClick={() => navigate("/orders/new")}
-          >
-            Create the first order
-          </button>
         </div>
       );
     }
 
     if (filteredOrders.length === 0) {
       return (
-        <div className="orders-no-results">
-          <strong>No matching orders</strong>
-
-          <p>
-            Try changing your search or status
-            filter.
+        <div className="emptystate">
+          <div className="tile tone-grey">
+            <Icon name="search" size={20} />
+          </div>
+          <p className="emptystate__title">No matching orders</p>
+          <p className="emptystate__text">
+            Try a different reference or status.
           </p>
-
-          <button
-            type="button"
-            className="btn-small btn-ghost"
-            onClick={clearFilters}
-          >
-            Clear filters
-          </button>
         </div>
       );
     }
 
     return (
-      <div className="orders-table-wrap">
+      <div className="table-wrap">
         <table>
           <thead>
             <tr>
@@ -102,40 +94,24 @@ export function Orders() {
           <tbody>
             {filteredOrders.map((order) => (
               <tr key={order.id}>
-                <td className="mono">
-                  {order.reference}
-                </td>
-
-                <td className="mono">
-                  {order.items.length}
-                </td>
-
-                <td className="mono">
-                  {order.result?.boxes?.length ?? "—"}
-                </td>
-
+                <td className="mono strong">{order.reference}</td>
+                <td>{order.items.length}</td>
+                <td>{order.result?.boxes?.length ?? "—"}</td>
                 <td>
-                  <span
-                    className={`tag tag--${order.status}`}
-                  >
+                  <span className={`tag tag--${order.status}`}>
                     {order.status}
                   </span>
                 </td>
-
-                <td className="mono muted">
-                  {new Date(
-                    order.createdAt
-                  ).toLocaleDateString("en-AU")}
+                <td className="muted">
+                  {new Date(order.createdAt).toLocaleDateString()}
                 </td>
-
                 <td className="text-right">
-                  <Link to={`/orders/${order.id}`}>
-                    <button
-                      type="button"
-                      className="btn-small btn-ghost"
-                    >
-                      Open
-                    </button>
+                  <Link
+                    to={`/orders/${order.id}`}
+                    className="row-arrow"
+                    aria-label={`Open ${order.reference}`}
+                  >
+                    <Icon name="arrowRight" size={16} />
                   </Link>
                 </td>
               </tr>
@@ -148,81 +124,74 @@ export function Orders() {
 
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1>Orders</h1>
-        </div>
+      <PageHeader
+        eyebrow="Operations"
+        title="Orders"
+        subtitle="Every order raised in Bionic Portal, newest first."
+        actions={
+          <button
+            type="button"
+            className="btn-primary"
+            onClick={() => navigate("/orders/new")}
+          >
+            <Icon name="plus" size={17} />
+            New Order
+          </button>
+        }
+      />
 
-        <button
-          type="button"
-          onClick={() => navigate("/orders/new")}
-        >
-          New order
-        </button>
-      </div>
+      {error && <div className="notice notice--error">{error}</div>}
 
-      {error && (
-        <div className="notice notice--error">
-          {error}
-        </div>
-      )}
+      <div className="card">
+        <SectionHeader
+          icon={<Icon name="list" size={18} />}
+          title="All Orders"
+          subtitle={
+            loading
+              ? "Loading…"
+              : `${filteredOrders.length} of ${orders.length} shown`
+          }
+        />
 
-      {!loading && orders.length > 0 && (
-        <div className="orders-toolbar">
-          <div className="orders-search">
-            <span className="orders-search__icon">
-              
-            </span>
-
+        <div className="toolbar">
+          <div className="toolbar__search">
+            <Icon name="search" size={16} />
             <input
               type="search"
-              placeholder="Search by reference..."
+              placeholder="Search by reference…"
               value={search}
-              onChange={(event) =>
-                setSearch(event.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
               aria-label="Search orders by reference"
             />
           </div>
 
-          <div className="orders-filter">
-            <label htmlFor="order-status">
-              Status
-            </label>
-
+          <div className="toolbar__field">
+            <label htmlFor="orders-status">Status</label>
             <select
-              id="order-status"
+              id="orders-status"
               value={statusFilter}
-              onChange={(event) =>
-                setStatusFilter(event.target.value)
-              }
+              onChange={(e) => setStatusFilter(e.target.value)}
             >
-              <option value="all">
-                All statuses
-              </option>
-
-              <option value="draft">
-                Draft
-              </option>
-
-              <option value="packing">
-                Packing
-              </option>
-
-              <option value="packed">
-                Packed
-              </option>
-
-              <option value="failed">
-                Failed
-              </option>
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="packing">Packing</option>
+              <option value="packed">Packed</option>
+              <option value="failed">Failed</option>
             </select>
           </div>
-        </div>
-      )}
 
-      <div className="sheet">
-        {renderOrdersContent()}
+          {filtersApplied && (
+            <button
+              type="button"
+              className="btn-ghost btn-small toolbar__spacer"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          )}
+        </div>
+
+        {renderContent()}
       </div>
     </>
   );

@@ -68,7 +68,9 @@ export function Administration() {
     <>
       <div className="page-head">
         <div>
+          <div className="eyebrow">Access</div>
           <h1>Administration</h1>
+          <p className="muted">Manage who can use Bionic Portal and what they can do.</p>
         </div>
       </div>
 

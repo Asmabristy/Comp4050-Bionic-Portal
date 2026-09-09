@@ -498,7 +498,9 @@ export function Cartons() {
     <>
       <div className="page-head">
         <div>
+          <div className="eyebrow">Catalogue</div>
           <h1>Cartons</h1>
+          <p className="muted">Carton types available to the packing algorithm.</p>
         </div>
       </div>
 

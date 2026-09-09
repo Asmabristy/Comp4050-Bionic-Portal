@@ -2383,3 +2383,1200 @@ label {
     width: 100%;
   }
 }
+
+/* =========================================================
+   DESIGN SYSTEM
+   Shared tokens and patterns so every page matches the
+   dashboard rather than each inventing its own look.
+   ========================================================= */
+
+:root {
+  --brand:        #4c6ef5;
+  --brand-dark:   #3b5bdb;
+  --brand-soft:   #eef2ff;
+  --brand-tint:   #e0e7ff;
+
+  --ink:          #111827;
+  --ink-2:        #374151;
+  --muted:        #6b7280;
+  --muted-2:      #9ca3af;
+
+  --line:         #e8ecf3;
+  --line-soft:    #f1f4f9;
+  --surface:      #ffffff;
+  --canvas:       #f7f9fc;
+
+  --ok:           #16a34a;
+  --ok-soft:      #dcfce7;
+  --warn:         #d97706;
+  --warn-soft:    #fef3c7;
+  --danger:       #dc2626;
+  --danger-soft:  #fee2e2;
+  --info:         #7c3aed;
+  --info-soft:    #ede9fe;
+
+  --gap-section:  20px;
+
+  --radius:       14px;
+  --radius-lg:    18px;
+  --shadow-sm:    0 1px 2px rgba(16, 24, 40, 0.04);
+  --shadow:       0 1px 3px rgba(16, 24, 40, 0.06),
+                  0 8px 24px -12px rgba(16, 24, 40, 0.10);
+}
+
+.icon {
+  flex: 0 0 auto;
+  display: block;
+}
+
+/* ---------------------------------------------------------
+   Icon tiles — the tinted rounded squares beside headings
+   --------------------------------------------------------- */
+
+.sectionhead__icon,
+.tile {
+  width: 38px;
+  height: 38px;
+  flex: 0 0 auto;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 11px;
+}
+
+.tone-blue   { background: var(--brand-soft); color: var(--brand-dark); }
+.tone-green  { background: var(--ok-soft);    color: var(--ok); }
+.tone-purple { background: var(--info-soft);  color: var(--info); }
+.tone-red    { background: var(--danger-soft);color: var(--danger); }
+.tone-amber  { background: var(--warn-soft);  color: var(--warn); }
+.tone-grey   { background: var(--line-soft);  color: var(--muted); }
+
+/* ---------------------------------------------------------
+   Page header
+   --------------------------------------------------------- */
+
+.pagehead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+
+  margin-bottom: 24px;
+}
+
+.pagehead__eyebrow {
+  margin-bottom: 6px;
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+.pagehead__title {
+  margin: 0;
+
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.pagehead__subtitle {
+  margin: 6px 0 0;
+
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.pagehead__actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ---------------------------------------------------------
+   Section header inside a card
+   --------------------------------------------------------- */
+
+.sectionhead {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  margin-bottom: 18px;
+}
+
+.sectionhead__text {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.sectionhead__title {
+  margin: 0;
+
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.sectionhead__subtitle {
+  margin: 2px 0 0;
+
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.sectionhead__actions {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Small "View all →" style link */
+.link-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--brand-dark);
+  text-decoration: none;
+}
+
+.link-action:hover {
+  text-decoration: underline;
+}
+
+/* ---------------------------------------------------------
+   Cards
+   --------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 22px 24px;
+
+  margin-bottom: var(--gap-section);
+}
+
+.card--flush {
+  padding-bottom: 8px;
+}
+
+/* ---------------------------------------------------------
+   Toolbar — search + filters above a table
+   --------------------------------------------------------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  margin-bottom: 18px;
+}
+
+.toolbar__search {
+  position: relative;
+  flex: 1 1 280px;
+  max-width: 380px;
+}
+
+.toolbar__search .icon {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted-2);
+  pointer-events: none;
+}
+
+.toolbar__search input {
+  width: 100%;
+  padding: 11px 14px 11px 38px;
+
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.toolbar__search input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.toolbar__field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.toolbar__field label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+.toolbar__field select {
+  padding: 10px 13px;
+
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+
+  font-size: 0.88rem;
+  color: var(--ink);
+}
+
+.toolbar__field select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+.toolbar__spacer {
+  margin-left: auto;
+}
+
+/* ---------------------------------------------------------
+   Empty states
+   --------------------------------------------------------- */
+
+.emptystate {
+  padding: 44px 24px;
+  text-align: center;
+}
+
+.emptystate .tile {
+  margin: 0 auto 14px;
+  width: 46px;
+  height: 46px;
+}
+
+.emptystate__title {
+  margin: 0 0 5px;
+
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.emptystate__text {
+  margin: 0;
+
+  font-size: 0.87rem;
+  color: var(--muted);
+}
+
+
+/* =========================================================
+   TOP BAR — brand mark, icon nav, pill active state
+   Overrides the earlier plain-text nav.
+   ========================================================= */
+
+.brand-mark {
+  width: 36px;
+  height: 36px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 10px;
+
+  background: linear-gradient(140deg, var(--brand) 0%, var(--brand-dark) 100%);
+  color: #fff;
+
+  box-shadow: 0 4px 12px -4px rgba(76, 110, 245, 0.6);
+}
+
+.topbar__brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+}
+
+.nav-link {
+  min-height: 0;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 9px 14px;
+
+  border-radius: 10px;
+
+  color: var(--muted);
+
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.nav-link:hover {
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+}
+
+.nav-link--active {
+  color: var(--brand-dark);
+  background: var(--brand-soft);
+}
+
+/* The underline belonged to the old flat nav; the pill replaces it. */
+.nav-link--active::after {
+  display: none;
+}
+
+.topbar__nav {
+  align-items: center;
+  gap: 4px;
+}
+
+.signout-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 9px 12px;
+
+  border-radius: 10px;
+}
+
+
+/* =========================================================
+   DASHBOARD (rebuilt to match the reference design)
+   ========================================================= */
+
+.pagehead__cta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.pagehead__cta-hint {
+  font-size: 0.76rem;
+  color: var(--muted-2);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 12px 20px;
+
+  border: 0;
+  border-radius: 11px;
+
+  background: linear-gradient(140deg, var(--brand) 0%, var(--brand-dark) 100%);
+  color: #fff;
+
+  font-size: 0.92rem;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  box-shadow: 0 6px 16px -6px rgba(76, 110, 245, 0.65);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
+
+/* ---------- stat cards ---------- */
+
+.statgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+
+  margin-bottom: var(--gap-section);
+}
+
+.statcard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+
+  padding: 18px 20px 20px;
+}
+
+.statcard__top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  margin-bottom: 14px;
+}
+
+.statcard__n {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--muted-2);
+}
+
+.tone-text-blue   { color: var(--brand-dark); }
+.tone-text-green  { color: var(--ok); }
+.tone-text-purple { color: var(--info); }
+.tone-text-red    { color: var(--danger); }
+
+.statcard__label {
+  display: block;
+
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.statcard__value {
+  display: block;
+  margin: 2px 0 3px;
+
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.statcard__caption {
+  font-size: 0.78rem;
+  color: var(--muted-2);
+}
+
+.statcard__caption--ok     { color: var(--ok); font-weight: 600; }
+.statcard__caption--danger { color: var(--danger); font-weight: 600; }
+
+/* ---------- main grid ---------- */
+
+.dashgrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(0, 1fr);
+  gap: var(--gap-section);
+
+  /* Both columns share a height so the two cards line up top and bottom. */
+  align-items: stretch;
+
+  /* The cards inside use .card--fill, which drops their own bottom margin,
+     so the row has to supply the spacing itself. */
+  margin-bottom: var(--gap-section);
+}
+
+/* ---------- progress ring ---------- */
+
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 26px;
+}
+
+.ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 130px;
+  height: 130px;
+}
+
+.ring__svg {
+  width: 130px;
+  height: 130px;
+}
+
+.ring__track { stroke: var(--line-soft); }
+.ring__value { stroke: var(--brand); }
+
+.ring__label {
+  position: absolute;
+  inset: 0;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+}
+
+.ring__label strong {
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.ring__label span {
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.statuslist {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+.statuslist li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  font-size: 0.87rem;
+  color: var(--ink-2);
+}
+
+.statuslist li strong {
+  margin-left: auto;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.dot--packed  { background: var(--ok); }
+.dot--draft   { background: var(--muted-2); }
+.dot--packing { background: var(--brand); }
+.dot--failed  { background: var(--danger); }
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  margin-top: 18px;
+  padding: 12px 14px;
+
+  border-radius: 11px;
+
+  font-size: 0.85rem;
+}
+
+.banner--ok {
+  background: var(--ok-soft);
+  color: #14532d;
+}
+
+.banner strong {
+  margin-left: auto;
+  font-weight: 650;
+}
+
+/* ---------- quick actions ---------- */
+
+.quickgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.quickcard {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+
+  padding: 16px 17px;
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+
+  text-decoration: none;
+
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.quickcard:hover {
+  border-color: var(--brand-tint);
+  background: #fbfcff;
+}
+
+.quickcard__text {
+  min-width: 0;
+  flex: 1 1 auto;
+
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quickcard__text strong {
+  font-size: 0.9rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.quickcard__text span {
+  font-size: 0.79rem;
+  color: var(--muted);
+}
+
+.quickcard__go {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 auto;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand-dark);
+}
+
+/* ---------- shared table + row arrow ---------- */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.row-arrow {
+  width: 30px;
+  height: 30px;
+
+  display: inline-grid;
+  place-items: center;
+
+  border-radius: 50%;
+  color: var(--brand-dark);
+
+  transition: background 150ms ease;
+}
+
+.row-arrow:hover {
+  background: var(--brand-soft);
+}
+
+.strong { font-weight: 650; }
+
+@media (max-width: 1100px) {
+  .statgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .dashgrid { grid-template-columns: minmax(0, 1fr); }
+  .quickgrid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .statgrid { grid-template-columns: minmax(0, 1fr); }
+  .pagehead__cta { align-items: flex-start; }
+  .summary { flex-direction: column; align-items: stretch; }
+  .ring { margin: 0 auto; }
+}
+
+
+/* =========================================================
+   LEGACY CLASS BRIDGE
+   Pages still using .page-head / .sheet inherit the same look
+   as the rebuilt ones, so the whole app stays consistent
+   without rewriting every large page.
+   ========================================================= */
+
+.page-head {
+  align-items: flex-start;
+
+  margin-bottom: 24px;
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.page-head h1 {
+  margin: 0;
+
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.page-head .muted,
+.page-head p {
+  margin: 6px 0 0;
+
+  font-size: 0.92rem;
+  color: var(--muted);
+}
+
+.eyebrow {
+  margin-bottom: 6px;
+
+  color: var(--muted-2);
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+}
+
+.sheet {
+  padding: 22px 24px;
+  margin-bottom: 20px;
+
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+.sheet__head {
+  align-items: center;
+
+  margin-bottom: 18px;
+  padding-bottom: 0;
+
+  border-bottom: 0;
+}
+
+.sheet__head h2 {
+  margin: 0;
+
+  font-size: 1.02rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.sheet__head .muted,
+.sheet__head p {
+  margin: 2px 0 0;
+
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* Search + filter bars that predate .toolbar */
+.admin-toolbar,
+.orders-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  margin-bottom: 18px;
+}
+
+.admin-search input,
+.orders-search input,
+.admin-role-filter select,
+.orders-status-filter select {
+  padding: 11px 14px;
+
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--surface);
+
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.admin-search input:focus,
+.orders-search input:focus,
+.admin-role-filter select:focus,
+.orders-status-filter select:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px var(--brand-soft);
+}
+
+/* Primary buttons across older pages pick up the brand gradient */
+.dashboard-primary-button,
+.visualizer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 12px 20px;
+
+  border: 0;
+  border-radius: 11px;
+
+  background: linear-gradient(140deg, var(--brand) 0%, var(--brand-dark) 100%);
+  color: #fff;
+
+  font-size: 0.92rem;
+  font-weight: 650;
+
+  cursor: pointer;
+
+  box-shadow: 0 6px 16px -6px rgba(76, 110, 245, 0.65);
+}
+
+.dashboard-primary-button:hover,
+.visualizer-button:hover {
+  filter: brightness(1.05);
+}
+
+
+/* =========================================================
+   STAT CARDS — matched to the reference close-up
+   Icon tile left, text beside it, index top-right,
+   sparkline bottom-right.
+   ========================================================= */
+
+.statcard {
+  position: relative;
+
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+
+  padding: 19px 18px 19px 20px;
+  min-height: 118px;
+
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* The Packed card carries a faint wash of its own colour. */
+.statcard--green {
+  background: linear-gradient(180deg, #f4fdf7 0%, #ffffff 62%);
+  border-color: #dcf3e5;
+}
+
+.statcard__tile {
+  width: 52px;
+  height: 52px;
+  flex: 0 0 auto;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 14px;
+}
+
+.statcard__body {
+  min-width: 0;
+  flex: 1 1 auto;
+
+  display: flex;
+  flex-direction: column;
+
+  /* Keeps the label clear of the index in the corner. */
+  padding-right: 22px;
+}
+
+.statcard__label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.statcard__value {
+  margin: 5px 0 4px;
+
+  font-size: 2.05rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.statcard__caption {
+  font-size: 0.775rem;
+  color: var(--muted-2);
+  white-space: nowrap;
+}
+
+.statcard__caption--ok     { color: var(--ok); font-weight: 650; }
+.statcard__caption--danger { color: var(--danger); font-weight: 650; }
+
+.statcard__n {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+}
+
+/* ---------- sparkline ---------- */
+
+.spark {
+  flex: 0 0 auto;
+  align-self: flex-end;
+
+  /* Sits on the caption's baseline, matching the reference. */
+  margin-bottom: 1px;
+
+  width: 58px;
+  height: 32px;
+
+  pointer-events: none;
+}
+
+.spark--blue   rect { fill: var(--brand); }
+.spark--green  rect { fill: var(--ok); }
+.spark--purple rect { fill: var(--info); }
+.spark--red    rect { fill: var(--danger); }
+
+@media (max-width: 1350px) {
+  /* Decoration — drop it before it squeezes the numbers. */
+  .spark { display: none; }
+  .statcard__body { padding-right: 18px; }
+}
+
+
+/* =========================================================
+   FILLED CARDS
+   A card that shares a row with a taller one stretches to
+   match it. Without this the shorter card left a block of
+   dead space under its content.
+   ========================================================= */
+
+.card--fill {
+  display: flex;
+  flex-direction: column;
+
+  margin-bottom: 0;
+}
+
+/* The part that takes up whatever height is left over. */
+.card__grow {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Footer strip pinned to the bottom of a filled card. */
+.cardfoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+
+  margin-top: 16px;
+  padding-top: 14px;
+
+  border-top: 1px solid var(--line-soft);
+
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+/* The summary column's own content should sit at the top,
+   with the success banner pushed to the bottom edge. */
+.card--fill .summary {
+  margin-bottom: 4px;
+}
+
+.card--fill .banner {
+  margin-top: auto;
+}
+
+
+/* =========================================================
+   TOP BAR — responsive
+   Icons made the nav wider, so on narrower screens the brand
+   and account blocks were overlapping it. Shed the labels
+   before anything collides.
+   ========================================================= */
+
+@media (max-width: 1150px) {
+  /* Icons only — the labels are what run out of room first. */
+  .nav-link span {
+    display: none;
+  }
+
+  .nav-link {
+    padding: 10px 11px;
+  }
+
+  .topbar__nav {
+    gap: 2px;
+  }
+}
+
+@media (max-width: 900px) {
+  .brand-text {
+    display: none;
+  }
+
+  .account-details {
+    display: none;
+  }
+
+  .signout-button span {
+    display: none;
+  }
+
+  .signout-button {
+    padding: 9px 10px;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    gap: 8px;
+  }
+
+  .topbar__nav {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .topbar__nav::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+
+/* =========================================================
+   BACKGROUND
+   A soft wash behind the whole app, plus the isometric
+   carton watermark on the dashboard header.
+   ========================================================= */
+
+body {
+  background: var(--canvas);
+}
+
+/*
+ * Two very faint colour pools near the top of the page. Fixed rather than
+ * scrolled so the tint stays where the header is, and behind everything.
+ */
+.app-content {
+  position: relative;
+  isolation: isolate;
+}
+
+.app-content::before {
+  content: "";
+
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+
+  pointer-events: none;
+
+  background:
+    radial-gradient(
+      760px 420px at 78% -6%,
+      rgba(76, 110, 245, 0.10),
+      transparent 62%
+    ),
+    radial-gradient(
+      620px 380px at 8% -12%,
+      rgba(124, 58, 237, 0.06),
+      transparent 60%
+    );
+}
+
+/* ---------- dashboard header watermark ---------- */
+
+.herodecor {
+  position: absolute;
+  /* Sits inside the content area — any higher and the sticky top bar clips it. */
+  top: 0;
+  right: 250px;
+
+  width: 430px;
+  height: 200px;
+
+  pointer-events: none;
+  user-select: none;
+
+  z-index: -1;
+}
+
+.herodecor__cube {
+  position: absolute;
+  right: 0;
+  top: 0;
+
+  width: 152px;
+  height: 168px;
+
+  opacity: 0.9;
+}
+
+.herodecor__steps {
+  position: absolute;
+  right: 176px;
+  top: 30px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  text-align: right;
+}
+
+.herodecor__steps span {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #8a94ab;
+  line-height: 1.25;
+}
+
+.herodecor__rule {
+  align-self: flex-end;
+
+  width: 34px;
+  height: 3px;
+  margin-top: 5px;
+
+  border-radius: 999px;
+  background: var(--brand);
+}
+
+/* Soft pools of colour behind the carton. */
+.herodecor__glow {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(46px);
+}
+
+.herodecor__glow--a {
+  right: -20px;
+  top: -20px;
+  width: 210px;
+  height: 210px;
+  background: rgba(120, 150, 255, 0.22);
+}
+
+.herodecor__glow--b {
+  right: 130px;
+  top: 50px;
+  width: 170px;
+  height: 170px;
+  background: rgba(167, 139, 250, 0.15);
+}
+
+/*
+ * Below this width the header text would run under the carton, so the
+ * decoration steps aside rather than competing with the content.
+ */
+@media (max-width: 1400px) {
+  .herodecor__steps { display: none; }
+  .herodecor { right: 230px; width: 200px; }
+}
+
+@media (max-width: 1150px) {
+  .herodecor { display: none; }
+}
