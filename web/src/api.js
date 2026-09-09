@@ -61,5 +61,9 @@ deleteContainer: (id) =>
   getOrder: (id) => request(`/orders/${id}`),
   packOrder: (id) => request(`/orders/${id}/pack`, { method: "POST" }),
   getResult: (id) => request(`/orders/${id}/result`),
+  listUsers: () => request("/admin/users"),
+  setUserRole: (id, role) =>
+    request(`/admin/users/${id}`, { method: "PATCH", body: { role } }),
+
   deleteOrder: (id) => request(`/orders/${id}`, { method: "DELETE" }),
 };

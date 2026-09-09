@@ -1,40 +1,25 @@
-import { useState } from "react";
-
-const initialUsers = [
-  {
-    id: "1",
-    name: "Demo Operator",
-    email: "operator@example.com",
-    role: "operator",
-    status: "active",
-  },
-  {
-    id: "2",
-    name: "Demo Supervisor",
-    email: "supervisor@example.com",
-    role: "supervisor",
-    status: "active",
-  },
-  {
-    id: "3",
-    name: "Demo Admin",
-    email: "admin@example.com",
-    role: "admin",
-    status: "active",
-  },
-];
+import { useEffect, useState } from "react";
+import { api } from "../api.js";
 
 export function Administration() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
 
   const [editingId, setEditingId] = useState(null);
-  const [editForm, setEditForm] = useState({
-    role: "operator",
-    status: "active",
-  });
+  const [editForm, setEditForm] = useState({ role: "operator" });
+
+  useEffect(() => {
+    api
+      .listUsers()
+      .then(({ users }) => setUsers(users))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
   const filteredUsers = users.filter((user) => {
     const query = search.trim().toLowerCase();
@@ -52,36 +37,31 @@ export function Administration() {
 
   const startEdit = (user) => {
     setEditingId(user.id);
-
-    setEditForm({
-      role: user.role,
-      status: user.status,
-    });
+    setEditForm({ role: user.role });
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-
-    setEditForm({
-      role: "operator",
-      status: "active",
-    });
+    setEditForm({ role: "operator" });
   };
 
-  const saveEdit = (id) => {
-    setUsers((currentUsers) =>
-      currentUsers.map((user) =>
-        user.id === id
-          ? {
-              ...user,
-              role: editForm.role,
-              status: editForm.status,
-            }
-          : user
-      )
-    );
+  const saveEdit = async (id) => {
+    setError("");
+    setSaving(true);
 
-    setEditingId(null);
+    try {
+      const { user } = await api.setUserRole(id, editForm.role);
+
+      setUsers((current) =>
+        current.map((u) => (u.id === id ? user : u))
+      );
+
+      setEditingId(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -91,6 +71,10 @@ export function Administration() {
           <h1>Administration</h1>
         </div>
       </div>
+
+      {error && (
+        <div className="notice notice--error">{error}</div>
+      )}
 
       <div className="admin-toolbar">
         <div className="admin-search">
@@ -204,32 +188,7 @@ export function Administration() {
                       )}
                     </td>
 
-                    <td>
-                      {isEditing ? (
-                        <select
-                          className="admin-access-select"
-                          value={editForm.status}
-                          onChange={(event) =>
-                            setEditForm((current) => ({
-                              ...current,
-                              status: event.target.value,
-                            }))
-                          }
-                        >
-                          <option value="active">
-                            Active
-                          </option>
-
-                          <option value="disabled">
-                            Disabled
-                          </option>
-                        </select>
-                      ) : user.status === "active" ? (
-                        "Active"
-                      ) : (
-                        "Disabled"
-                      )}
-                    </td>
+                    <td>Active</td>
 
                     <td>
                       {isEditing ? (
@@ -237,11 +196,12 @@ export function Administration() {
                           <button
                             type="button"
                             className="btn-small"
+                            disabled={saving}
                             onClick={() =>
                               saveEdit(user.id)
                             }
                           >
-                            Save
+                            {saving ? "Saving…" : "Save"}
                           </button>
 
                           <button
@@ -272,11 +232,13 @@ export function Administration() {
         </div>
       </div>
 
-      <div className="notice">
-        Administration access and role changes are currently
-        UI-only and will be connected to the project
-        access-control backend.
-      </div>
+      {loading && (
+        <p className="muted mono">Loading users…</p>
+      )}
+
+      {!loading && users.length === 0 && !error && (
+        <p className="muted mono">No accounts yet.</p>
+      )}
     </>
   );
 }
