@@ -21,14 +21,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signIn = async (email, password) => {
-    const { token, user } = await api.login({ email, password });
+    const { token, refreshToken, user } = await api.login({ email, password });
     tokenStore.set(token);
+    tokenStore.setRefresh(refreshToken);
     setUser(user);
   };
 
   const signUp = async (name, email, password) => {
-    const { token, user } = await api.register({ name, email, password });
+    const { token, refreshToken, user } = await api.register({ name, email, password });
     tokenStore.set(token);
+    tokenStore.setRefresh(refreshToken);
     setUser(user);
   };
 

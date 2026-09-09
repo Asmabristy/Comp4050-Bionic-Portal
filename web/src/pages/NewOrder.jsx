@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { useAuth } from "../auth.jsx";
+import { isSupervisor } from "../roles.js";
 
 const blankItem = () => ({
   itemCode: "",
@@ -26,7 +27,7 @@ export function NewOrder() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const canRunSolver = user?.role === "supervisor";
+  const canRunSolver = isSupervisor(user);
 
   const updateItem = (index, key, value) => {
     const next = [...items];

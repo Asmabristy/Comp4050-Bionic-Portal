@@ -3,12 +3,13 @@ import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import FitVisualiser from "@bionic/visualiser";
 import { useAuth } from "../auth.jsx";
+import { isSupervisor } from "../roles.js";
 
 export function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const canRunSolver = user?.role === "supervisor";
+  const canRunSolver = isSupervisor(user);
 
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
