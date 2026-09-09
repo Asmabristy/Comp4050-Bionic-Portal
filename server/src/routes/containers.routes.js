@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { Container } from "../models/Container.js";
+import * as containers from "../data/containers.js";
 import { requireAuth } from "../middleware/auth.js";
 import { asyncRoute, HttpError } from "../middleware/errors.js";
 
@@ -23,18 +23,12 @@ containersRouter.get(
     const includeInactive =
       req.query.includeInactive === "true";
 
-    const filter = includeInactive
-      ? {}
-      : { active: true };
-
-    const containers = await Container.find(filter).sort({
-      width: 1,
-    });
+    const list = includeInactive
+      ? await containers.listAll()
+      : await containers.listActive();
 
     res.json({
-      containers: containers.map((container) =>
-        container.toPublic()
-      ),
+      containers: list,
     });
   })
 );
@@ -81,9 +75,7 @@ containersRouter.post(
     const normalizedReference =
       String(reference).trim();
 
-    const exists = await Container.findOne({
-      reference: normalizedReference,
-    });
+    const exists = await containers.referenceTaken(normalizedReference);
 
     if (exists) {
       throw new HttpError(
@@ -92,7 +84,7 @@ containersRouter.post(
       );
     }
 
-    const container = await Container.create({
+    const container = await containers.create({
       reference: normalizedReference,
       width,
       length,
@@ -104,7 +96,7 @@ containersRouter.post(
     });
 
     res.status(201).json({
-      container: container.toPublic(),
+      container,
     });
   })
 );
@@ -116,9 +108,10 @@ containersRouter.post(
 containersRouter.patch(
   "/:id",
   asyncRoute(async (req, res) => {
-    const container = await Container.findById(
-      req.params.id
-    );
+    const container = await containers.findById(req.params.id);
+
+    // Collected here, then written once at the end.
+    const patch = {};
 
     if (!container) {
       throw new HttpError(
@@ -149,10 +142,10 @@ containersRouter.patch(
         );
       }
 
-      const duplicate = await Container.findOne({
-        reference: normalizedReference,
-        _id: { $ne: container._id },
-      });
+      const duplicate = await containers.referenceTaken(
+        normalizedReference,
+        container.id
+      );
 
       if (duplicate) {
         throw new HttpError(
@@ -161,7 +154,7 @@ containersRouter.patch(
         );
       }
 
-      container.reference = normalizedReference;
+      patch.reference = normalizedReference;
     }
 
     const dimensions = {
@@ -185,7 +178,7 @@ containersRouter.patch(
           );
         }
 
-        container[field] = value;
+        patch[field] = value;
       }
     }
 
@@ -202,7 +195,7 @@ containersRouter.patch(
         );
       }
 
-      container.maxWeight = maxWeight;
+      patch.maxWeight = maxWeight;
     }
 
     if (boxWeight !== undefined) {
@@ -218,7 +211,7 @@ containersRouter.patch(
         );
       }
 
-      container.boxWeight = boxWeight;
+      patch.boxWeight = boxWeight;
     }
 
     if (maximumBoxes !== undefined) {
@@ -233,7 +226,7 @@ containersRouter.patch(
         );
       }
 
-      container.maximumBoxes = maximumBoxes;
+      patch.maximumBoxes = maximumBoxes;
     }
 
     if (active !== undefined) {
@@ -244,13 +237,13 @@ containersRouter.patch(
         );
       }
 
-      container.active = active;
+      patch.active = active;
     }
 
-    await container.save();
+    const updated = await containers.update(container.id, patch);
 
     res.json({
-      container: container.toPublic(),
+      container: updated,
     });
   })
 );
@@ -262,12 +255,9 @@ containersRouter.patch(
 containersRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
-    const container =
-      await Container.findByIdAndUpdate(
-        req.params.id,
-        { active: false },
-        { new: true }
-      );
+    const container = await containers.update(req.params.id, {
+      active: false,
+    });
 
     if (!container) {
       throw new HttpError(
@@ -277,7 +267,7 @@ containersRouter.delete(
     }
 
     res.json({
-      container: container.toPublic(),
+      container,
     });
   })
 );

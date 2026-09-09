@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
-import { connectDb } from "./db.js";
+import { connectDb } from "./supabase.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { ordersRouter } from "./routes/orders.routes.js";
 import { containersRouter } from "./routes/containers.routes.js";
@@ -16,6 +16,7 @@ app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
     service: "fitportal-api",
+    db: "supabase",
     solver: config.useMockSolver ? "mock" : config.solverUrl,
   });
 });
