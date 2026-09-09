@@ -89,19 +89,29 @@ create index if not exists orders_created_at_idx on public.orders (created_at de
 
 alter table public.orders enable row level security;
 
--- A user may only see their own orders.
+-- Orders are a shared work queue: an operator raises one and a supervisor packs
+-- it, so every signed-in user can read every order. `owner` records who raised
+-- it, and the API restricts deletion to that person or a supervisor.
 drop policy if exists "orders_select_own" on public.orders;
-create policy "orders_select_own"
+drop policy if exists "orders_modify_own" on public.orders;
+
+drop policy if exists "orders_select_authenticated" on public.orders;
+create policy "orders_select_authenticated"
   on public.orders for select
   to authenticated
-  using (auth.uid() = owner);
+  using (true);
 
-drop policy if exists "orders_modify_own" on public.orders;
-create policy "orders_modify_own"
-  on public.orders for all
+drop policy if exists "orders_insert_own" on public.orders;
+create policy "orders_insert_own"
+  on public.orders for insert
   to authenticated
-  using (auth.uid() = owner)
   with check (auth.uid() = owner);
+
+drop policy if exists "orders_update_authenticated" on public.orders;
+create policy "orders_update_authenticated"
+  on public.orders for update
+  to authenticated
+  using (true);
 
 -- ---------------------------------------------------------------- updated_at
 

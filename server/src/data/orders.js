@@ -10,6 +10,8 @@ function toPublic(row) {
   return {
     id: row.id,
     reference: row.reference,
+    // Who raised it — the UI shows nothing with this, but the delete check needs it.
+    ownerId: row.owner,
     status: row.status,
     items: row.items ?? [],
     containers: row.containers ?? [],
@@ -23,25 +25,30 @@ function fail(error, what) {
   if (error) throw new Error(`${what}: ${error.message}`);
 }
 
-/** This user's orders, newest first. */
-export async function listForOwner(ownerId) {
+/*
+ * Orders are a shared work queue, not private documents. An operator raises an
+ * order and a supervisor packs it, so both roles have to see the same list —
+ * scoping reads to the creator would break that handover entirely.
+ * `owner` is still recorded, and still governs who may delete.
+ */
+
+/** Every order, newest first. */
+export async function listAll() {
   const { data, error } = await supabase
     .from("orders")
     .select("*")
-    .eq("owner", ownerId)
     .order("created_at", { ascending: false });
 
   fail(error, "Could not load orders");
   return data.map(toPublic);
 }
 
-/** One order, but only if this user owns it. */
-export async function findOwned(id, ownerId) {
+/** One order, readable by any signed-in user. */
+export async function findById(id) {
   const { data, error } = await supabase
     .from("orders")
     .select("*")
     .eq("id", id)
-    .eq("owner", ownerId)
     .maybeSingle();
 
   // A malformed uuid is a "not found", not a 500.
@@ -69,7 +76,7 @@ export async function create({ reference, ownerId, items, containers, status }) 
 }
 
 /** Patch an order in place. `patch` uses API names (status, result). */
-export async function update(id, ownerId, patch) {
+export async function update(id, patch) {
   const row = {};
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.result !== undefined) row.result = patch.result;
@@ -81,7 +88,6 @@ export async function update(id, ownerId, patch) {
     .from("orders")
     .update(row)
     .eq("id", id)
-    .eq("owner", ownerId)
     .select()
     .maybeSingle();
 
@@ -89,12 +95,11 @@ export async function update(id, ownerId, patch) {
   return data ? toPublic(data) : null;
 }
 
-export async function remove(id, ownerId) {
+export async function remove(id) {
   const { data, error } = await supabase
     .from("orders")
     .delete()
     .eq("id", id)
-    .eq("owner", ownerId)
     .select()
     .maybeSingle();
 

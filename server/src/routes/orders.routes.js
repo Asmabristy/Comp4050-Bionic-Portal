@@ -9,8 +9,8 @@ export const ordersRouter = Router();
 
 ordersRouter.use(requireAuth);
 
-async function findOwnedOrder(req) {
-  const order = await orderStore.findOwned(req.params.id, req.user.id);
+async function findOrder(req) {
+  const order = await orderStore.findById(req.params.id);
 
   if (!order) {
     throw new HttpError(404, "That order doesn't exist.");
@@ -147,7 +147,7 @@ function validateContainers(containers) {
 ordersRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const list = await orderStore.listForOwner(req.user.id);
+    const list = await orderStore.listAll();
 
     res.json({
       orders: list.slice(0, 100),
@@ -223,7 +223,7 @@ ordersRouter.post(
 ordersRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
-    const order = await findOwnedOrder(req);
+    const order = await findOrder(req);
 
     res.json({
       order,
@@ -240,14 +240,14 @@ ordersRouter.post(
   "/:id/pack",
   requireSupervisor,
   asyncRoute(async (req, res) => {
-    const order = await findOwnedOrder(req);
+    const order = await findOrder(req);
 
-    await orderStore.update(order.id, req.user.id, { status: "packing" });
+    await orderStore.update(order.id, { status: "packing" });
 
     try {
       const solved = await requestPacking(order);
 
-      const updated = await orderStore.update(order.id, req.user.id, {
+      const updated = await orderStore.update(order.id, {
         status: solved.status === "success" ? "packed" : "failed",
         result: {
           status: solved.status,
@@ -264,7 +264,7 @@ ordersRouter.post(
         order: updated,
       });
     } catch (err) {
-      await orderStore.update(order.id, req.user.id, {
+      await orderStore.update(order.id, {
         status: "failed",
         result: {
           status: "error",
@@ -293,7 +293,7 @@ ordersRouter.post(
 ordersRouter.get(
   "/:id/result",
   asyncRoute(async (req, res) => {
-    const order = await findOwnedOrder(req);
+    const order = await findOrder(req);
 
     if (!order.result) {
       throw new HttpError(
@@ -317,11 +317,23 @@ ordersRouter.get(
 ordersRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
-    const order = await orderStore.remove(req.params.id, req.user.id);
+    const existing = await orderStore.findById(req.params.id);
 
-    if (!order) {
+    if (!existing) {
       throw new HttpError(404, "That order doesn't exist.");
     }
+
+    // Reading is shared, but deleting someone else's order is not.
+    const isOwner = existing.ownerId === req.user.id;
+
+    if (!isOwner && req.user.role !== "supervisor") {
+      throw new HttpError(
+        403,
+        "Only the person who raised this order, or a supervisor, can delete it."
+      );
+    }
+
+    await orderStore.remove(req.params.id);
 
     res.json({
       deleted: true,
