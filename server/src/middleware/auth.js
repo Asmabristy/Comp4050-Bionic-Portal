@@ -46,20 +46,37 @@ export async function requireAuth(req, res, next) {
   next();
 }
 
-/** Use after requireAuth. */
-export function requireAdmin(req, res, next) {
-  if (req.user?.role !== "admin") {
-    return res.status(403).json({ error: "That action needs an admin account." });
-  }
-  next();
+/*
+ * Roles are ranked, not a set of unrelated labels. Checking `role === X`
+ * exactly meant an admin had LESS access than a supervisor — no packing, no
+ * Administration page — so promoting someone to admin quietly broke their
+ * account. Anything a supervisor may do, an admin may do too.
+ */
+const RANK = {
+  operator: 1,
+  supervisor: 2,
+  admin: 3,
+};
+
+export function hasAtLeast(role, minimum) {
+  return (RANK[role] || 0) >= (RANK[minimum] || 0);
 }
 
 /** Use after requireAuth. */
 export function requireSupervisor(req, res, next) {
-  if (req.user?.role !== "supervisor") {
+  if (!hasAtLeast(req.user?.role, "supervisor")) {
     return res.status(403).json({
       error: "Only supervisors can run the packing algorithm.",
     });
+  }
+
+  next();
+}
+
+/** Use after requireAuth. Reserved for actions a supervisor shouldn't have. */
+export function requireAdmin(req, res, next) {
+  if (!hasAtLeast(req.user?.role, "admin")) {
+    return res.status(403).json({ error: "That action needs an admin account." });
   }
 
   next();

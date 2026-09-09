@@ -7,6 +7,7 @@
  */
 import { supabase, connectDb } from "./supabase.js";
 import * as containers from "./data/containers.js";
+import { isStrongPassword } from "./passwordPolicy.js";
 
 const ACCOUNTS = [
   {
@@ -79,6 +80,16 @@ async function findAuthUserByEmail(email) {
 }
 
 async function seedAccount({ email, password, name, role }) {
+  // The seed uses the admin API, which skips the rules the register route
+  // applies. Say so rather than quietly creating an account nobody could have
+  // signed up with.
+  if (!isStrongPassword(password)) {
+    console.warn(
+      `[seed] WARNING: "${password}" for ${email} does not meet the app's own ` +
+        "password rules. Fine for a demo account, not for anything real."
+    );
+  }
+
   let user = await findAuthUserByEmail(email);
 
   if (user) {

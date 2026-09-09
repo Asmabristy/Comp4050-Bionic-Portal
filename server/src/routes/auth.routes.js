@@ -2,6 +2,7 @@ import { Router } from "express";
 import { supabase, signInClient } from "../supabase.js";
 import { requireAuth, toPublicUser } from "../middleware/auth.js";
 import { asyncRoute, HttpError } from "../middleware/errors.js";
+import { isStrongPassword, PASSWORD_RULE } from "../passwordPolicy.js";
 
 export const authRouter = Router();
 
@@ -22,14 +23,8 @@ authRouter.post(
       throw new HttpError(400, "Enter a name, email, and password.");
     }
 
-    const strongPassword =
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9\s])\S{8,}$/;
-
-    if (!strongPassword.test(password)) {
-      throw new HttpError(
-        400,
-        "Password must be at least 8 characters and include an uppercase letter, lowercase letter, number, and special character."
-      );
+    if (!isStrongPassword(password)) {
+      throw new HttpError(400, PASSWORD_RULE);
     }
 
     const { data, error } = await supabase.auth.admin.createUser({
@@ -66,6 +61,7 @@ authRouter.post(
 
     res.status(201).json({
       token: session.data?.session?.access_token,
+      refreshToken: session.data?.session?.refresh_token,
       user: toPublicUser(data.user, { name: String(name).trim(), role: "operator" }),
     });
   })
@@ -96,6 +92,48 @@ authRouter.post(
 
     res.json({
       token: data.session.access_token,
+      refreshToken: data.session.refresh_token,
+      user: toPublicUser(data.user, profile),
+    });
+  })
+);
+
+/**
+ * POST /api/auth/refresh — trade a refresh token for a new access token.
+ *
+ * Supabase access tokens last an hour. Without this the browser simply stops
+ * working mid-session and the user is thrown back to the login screen.
+ */
+authRouter.post(
+  "/refresh",
+  asyncRoute(async (req, res) => {
+    const { refreshToken } = req.body || {};
+
+    if (!refreshToken) {
+      throw new HttpError(400, "No refresh token supplied.");
+    }
+
+    const { data, error } = await signInClient().auth.refreshSession({
+      refresh_token: refreshToken,
+    });
+
+    if (error || !data?.session) {
+      throw new HttpError(401, "Your session expired. Sign in again.");
+    }
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("name, role")
+      .eq("id", data.user.id)
+      .maybeSingle();
+
+    if (!profile) {
+      throw new HttpError(401, "That account no longer exists.");
+    }
+
+    res.json({
+      token: data.session.access_token,
+      refreshToken: data.session.refresh_token,
       user: toPublicUser(data.user, profile),
     });
   })

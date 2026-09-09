@@ -1,4 +1,5 @@
 import { supabase } from "../supabase.js";
+import { isUuid } from "./ids.js";
 
 /*
  * items, containers and result are jsonb columns holding exactly the structures
@@ -45,17 +46,29 @@ export async function listAll() {
 
 /** One order, readable by any signed-in user. */
 export async function findById(id) {
+  if (!isUuid(id)) return null;
+
   const { data, error } = await supabase
     .from("orders")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  // A malformed uuid is a "not found", not a 500.
-  if (error && error.code === "22P02") return null;
   fail(error, "Could not load order");
 
   return data ? toPublic(data) : null;
+}
+
+/** Is this order reference already in use? Case-insensitive. */
+export async function referenceTaken(reference) {
+  const { data, error } = await supabase
+    .from("orders")
+    .select("id")
+    .ilike("reference", reference)
+    .limit(1);
+
+  fail(error, "Could not check the order reference");
+  return data.length > 0;
 }
 
 export async function create({ reference, ownerId, items, containers, status }) {
@@ -77,6 +90,8 @@ export async function create({ reference, ownerId, items, containers, status }) 
 
 /** Patch an order in place. `patch` uses API names (status, result). */
 export async function update(id, patch) {
+  if (!isUuid(id)) return null;
+
   const row = {};
   if (patch.status !== undefined) row.status = patch.status;
   if (patch.result !== undefined) row.result = patch.result;
@@ -96,6 +111,8 @@ export async function update(id, patch) {
 }
 
 export async function remove(id) {
+  if (!isUuid(id)) return null;
+
   const { data, error } = await supabase
     .from("orders")
     .delete()

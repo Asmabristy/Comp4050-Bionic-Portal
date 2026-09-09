@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "./auth.jsx";
+import { isSupervisor } from "./roles.js";
 import { Layout } from "./components/Layout.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Dashboard } from "./pages/Dashboard.jsx";
@@ -34,7 +35,7 @@ function Gate() {
         <Route path="/cartons" element={<Cartons />} />
         <Route
           path="/administration" element={
-            user?.role === "supervisor" ? (
+            isSupervisor(user) ? (
               <Administration />
               ) : (
                 <Navigate to="/dashboard" replace />

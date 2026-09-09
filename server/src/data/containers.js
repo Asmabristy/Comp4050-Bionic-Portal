@@ -1,4 +1,5 @@
 import { supabase } from "../supabase.js";
+import { isUuid } from "./ids.js";
 
 /*
  * Postgres columns are snake_case; the API has always spoken camelCase.
@@ -71,14 +72,14 @@ export async function findByReference(reference) {
 }
 
 export async function findById(id) {
+  if (!isUuid(id)) return null;
+
   const { data, error } = await supabase
     .from("containers")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  // A malformed uuid is a "not found", not a 500.
-  if (error && error.code === "22P02") return null;
   fail(error, "Could not look up carton");
 
   return data ? toPublic(data) : null;
@@ -97,6 +98,8 @@ export async function referenceTaken(reference, exceptId) {
 
 /** Patch a carton. `patch` uses API names (maxWeight, maximumBoxes, ...). */
 export async function update(id, patch) {
+  if (!isUuid(id)) return null;
+
   const row = {};
   if (patch.reference !== undefined) row.reference = patch.reference;
   if (patch.width !== undefined) row.width = patch.width;
@@ -130,6 +133,8 @@ export async function create(input) {
 }
 
 export async function remove(id) {
+  if (!isUuid(id)) return null;
+
   const { data, error } = await supabase
     .from("containers")
     .delete()

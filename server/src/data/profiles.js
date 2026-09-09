@@ -1,4 +1,5 @@
 import { supabase } from "../supabase.js";
+import { isUuid } from "./ids.js";
 
 /*
  * Profiles hold the fields Supabase Auth doesn't: display name and role.
@@ -31,13 +32,14 @@ export async function listAll() {
 }
 
 export async function findById(id) {
+  if (!isUuid(id)) return null;
+
   const { data, error } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", id)
     .maybeSingle();
 
-  if (error && error.code === "22P02") return null;
   fail(error, "Could not load user");
 
   return data ? toPublic(data) : null;
@@ -45,6 +47,8 @@ export async function findById(id) {
 
 /** Change someone's role. */
 export async function setRole(id, role) {
+  if (!isUuid(id)) return null;
+
   const { data, error } = await supabase
     .from("profiles")
     .update({ role })

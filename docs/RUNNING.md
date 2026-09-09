@@ -4,7 +4,8 @@ Two terminals, one for each half.
 
 ## Terminal 1 — server
 
-First time:
+First time — set up Supabase first (schema + keys), see
+[SUPABASE.md](SUPABASE.md). Then:
 
 ```bash
 cd server && npm install && cp .env.example .env && npm run seed && npm run dev

@@ -19,6 +19,17 @@ async function findOrder(req) {
   return order;
 }
 
+/*
+ * Upper bounds. Without these a single request can take the API down: quantity
+ * is expanded into one record per unit before the order reaches Solver, so
+ * quantity 999999 becomes ~85MB of JSON. These are generous for real orders and
+ * still small enough to stay safe.
+ */
+const MAX_REFERENCE_LENGTH = 120;
+const MAX_ITEM_ROWS = 500;
+const MAX_QUANTITY = 10000;
+const MAX_TOTAL_UNITS = 20000;
+
 /**
  * Validate items received from either:
  * - the manual Portal form
@@ -27,6 +38,13 @@ async function findOrder(req) {
 function validateItems(items) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new HttpError(400, "Add at least one item to the order.");
+  }
+
+  if (items.length > MAX_ITEM_ROWS) {
+    throw new HttpError(
+      400,
+      `An order can have at most ${MAX_ITEM_ROWS} item rows.`
+    );
   }
 
   items.forEach((item, index) => {
@@ -77,7 +95,27 @@ function validateItems(items) {
         `Item ${item.itemCode} needs a quantity of at least 1.`
       );
     }
+
+    if (item.quantity !== undefined && item.quantity > MAX_QUANTITY) {
+      throw new HttpError(
+        400,
+        `Item ${item.itemCode} has a quantity above the ${MAX_QUANTITY} limit.`
+      );
+    }
   });
+
+  // Each unit becomes its own record for Solver, so the total is what matters.
+  const totalUnits = items.reduce(
+    (sum, item) => sum + (Number(item.quantity) || 1),
+    0
+  );
+
+  if (totalUnits > MAX_TOTAL_UNITS) {
+    throw new HttpError(
+      400,
+      `This order has ${totalUnits} units in total, above the ${MAX_TOTAL_UNITS} limit.`
+    );
+  }
 }
 
 function validateContainers(containers) {
@@ -170,6 +208,22 @@ ordersRouter.post(
       throw new HttpError(400, "Give the order a reference.");
     }
 
+    if (String(reference).trim().length > MAX_REFERENCE_LENGTH) {
+      throw new HttpError(
+        400,
+        `The order reference can be at most ${MAX_REFERENCE_LENGTH} characters.`
+      );
+    }
+
+    // References identify orders to people, so two orders sharing one is a
+    // problem however it happened — a typo, or a double-submitted form.
+    if (await orderStore.referenceTaken(String(reference).trim())) {
+      throw new HttpError(
+        409,
+        `An order with reference "${String(reference).trim()}" already exists.`
+      );
+    }
+
     validateItems(items);
 
     /*
@@ -242,10 +296,34 @@ ordersRouter.post(
   asyncRoute(async (req, res) => {
     const order = await findOrder(req);
 
+    /*
+     * The order carries a snapshot of the cartons taken when it was raised, so
+     * its dimensions stay reproducible. But a carton deactivated since then —
+     * out of stock, withdrawn — must not be packed into, and the snapshot alone
+     * would happily keep using it.
+     */
+    const stillActive = new Set(
+      (await containerStore.listActive()).map((c) => c.reference)
+    );
+
+    const usableContainers = (order.containers || []).filter((c) =>
+      stillActive.has(c.reference)
+    );
+
+    if (usableContainers.length === 0) {
+      throw new HttpError(
+        400,
+        "None of this order's carton types are active any more. Reactivate one, or raise the order again."
+      );
+    }
+
     await orderStore.update(order.id, { status: "packing" });
 
     try {
-      const solved = await requestPacking(order);
+      const solved = await requestPacking({
+        ...order,
+        containers: usableContainers,
+      });
 
       const updated = await orderStore.update(order.id, {
         status: solved.status === "success" ? "packed" : "failed",

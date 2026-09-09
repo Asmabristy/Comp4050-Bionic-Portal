@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
+import { isSupervisor } from "../roles.js";
 
 export function Layout() {
  const { user, signOut } = useAuth();
@@ -10,7 +11,7 @@ const handleSignOut = () => {
   navigate("/login");
 };
 
- const canSeeAdmin = user?.role === "supervisor";
+ const canSeeAdmin = isSupervisor(user);
 
   return (
     <div className="app-shell">
