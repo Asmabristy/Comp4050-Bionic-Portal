@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { Order } from "../models/Order.js";
-import { Container } from "../models/Container.js";
+import * as orderStore from "../data/orders.js";
+import * as containerStore from "../data/containers.js";
 import { requireAuth, requireSupervisor } from "../middleware/auth.js";
 import { asyncRoute, HttpError } from "../middleware/errors.js";
 import { requestPacking } from "../services/solverClient.js";
@@ -10,10 +10,7 @@ export const ordersRouter = Router();
 ordersRouter.use(requireAuth);
 
 async function findOwnedOrder(req) {
-  const order = await Order.findOne({
-    _id: req.params.id,
-    owner: req.user._id,
-  });
+  const order = await orderStore.findOwned(req.params.id, req.user.id);
 
   if (!order) {
     throw new HttpError(404, "That order doesn't exist.");
@@ -150,14 +147,10 @@ function validateContainers(containers) {
 ordersRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const orders = await Order.find({
-      owner: req.user._id,
-    })
-      .sort({ createdAt: -1 })
-      .limit(100);
+    const list = await orderStore.listForOwner(req.user.id);
 
     res.json({
-      orders: orders.map((o) => o.toPublic()),
+      orders: list.slice(0, 100),
     });
   })
 );
@@ -189,9 +182,7 @@ ordersRouter.post(
       !Array.isArray(chosenContainers) ||
       chosenContainers.length === 0
     ) {
-      const catalogue = await Container.find({
-        active: true,
-      });
+      const catalogue = await containerStore.listActive();
 
       if (catalogue.length === 0) {
         throw new HttpError(
@@ -214,16 +205,16 @@ ordersRouter.post(
       validateContainers(chosenContainers);
     }
 
-    const order = await Order.create({
+    const order = await orderStore.create({
       reference: String(reference).trim(),
-      owner: req.user._id,
+      ownerId: req.user.id,
       items,
       containers: chosenContainers,
       status: "draft",
     });
 
     res.status(201).json({
-      order: order.toPublic(),
+      order,
     });
   })
 );
@@ -235,7 +226,7 @@ ordersRouter.get(
     const order = await findOwnedOrder(req);
 
     res.json({
-      order: order.toPublic(),
+      order,
     });
   })
 );
@@ -251,44 +242,40 @@ ordersRouter.post(
   asyncRoute(async (req, res) => {
     const order = await findOwnedOrder(req);
 
-    order.status = "packing";
-    await order.save();
+    await orderStore.update(order.id, req.user.id, { status: "packing" });
 
     try {
       const solved = await requestPacking(order);
 
-      order.result = {
-        status: solved.status,
-        message: solved.message || "",
-        boxes: solved.boxes || [],
-        unpacked: solved.unpacked || [],
-        solvedAt: new Date(),
-        solverMs: solved.solverMs || 0,
-        source: solved.source || "solver",
-      };
-
-      order.status =
-        solved.status === "success" ? "packed" : "failed";
-
-      await order.save();
+      const updated = await orderStore.update(order.id, req.user.id, {
+        status: solved.status === "success" ? "packed" : "failed",
+        result: {
+          status: solved.status,
+          message: solved.message || "",
+          boxes: solved.boxes || [],
+          unpacked: solved.unpacked || [],
+          solvedAt: new Date().toISOString(),
+          solverMs: solved.solverMs || 0,
+          source: solved.source || "solver",
+        },
+      });
 
       res.json({
-        order: order.toPublic(),
+        order: updated,
       });
     } catch (err) {
-      order.status = "failed";
-
-      order.result = {
-        status: "error",
-        message: err.message,
-        boxes: [],
-        unpacked: order.items.map((item) => item.itemCode),
-        solvedAt: new Date(),
-        solverMs: 0,
-        source: "solver",
-      };
-
-      await order.save();
+      await orderStore.update(order.id, req.user.id, {
+        status: "failed",
+        result: {
+          status: "error",
+          message: err.message,
+          boxes: [],
+          unpacked: order.items.map((item) => item.itemCode),
+          solvedAt: new Date().toISOString(),
+          solverMs: 0,
+          source: "solver",
+        },
+      });
 
       throw new HttpError(
         502,
@@ -316,7 +303,7 @@ ordersRouter.get(
     }
 
     res.json({
-      orderId: order._id.toString(),
+      orderId: order.id,
       reference: order.reference,
       status: order.result.status,
       message: order.result.message,
@@ -330,10 +317,7 @@ ordersRouter.get(
 ordersRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
-    const order = await Order.findOneAndDelete({
-      _id: req.params.id,
-      owner: req.user._id,
-    });
+    const order = await orderStore.remove(req.params.id, req.user.id);
 
     if (!order) {
       throw new HttpError(404, "That order doesn't exist.");
