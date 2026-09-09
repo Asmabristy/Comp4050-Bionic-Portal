@@ -247,7 +247,9 @@ export function NewOrder() {
     <>
       <div className="page-head">
         <div>
+          <div className="eyebrow">Operations</div>
           <h1>New order</h1>
+          <p className="muted">Enter the items to pack and save or send to the solver.</p>
         </div>
       </div>
 
