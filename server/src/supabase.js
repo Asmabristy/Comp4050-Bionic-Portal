@@ -1,20 +1,50 @@
 import { createClient } from "@supabase/supabase-js";
 import { config } from "./config.js";
 
+const MISSING_CONFIG =
+  "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set in server/.env. " +
+  "Copy server/.env.example to server/.env and fill in your project's values " +
+  "(Supabase dashboard -> Project Settings -> API). See docs/SUPABASE.md.";
+
+function assertConfigured() {
+  if (!config.supabaseUrl || !config.supabaseServiceKey) {
+    throw new Error(MISSING_CONFIG);
+  }
+}
+
+function newClient() {
+  assertConfigured();
+
+  return createClient(config.supabaseUrl, config.supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+let client = null;
+
 /**
  * Server-side Supabase client.
  *
  * Uses the service_role key, which bypasses Row Level Security. That is what we
  * want here — the API is the thing enforcing ownership and roles, the same way
  * it did against Mongo. This key must never reach the browser.
+ *
+ * Built on first use rather than at import. Creating it eagerly meant that with
+ * no .env present, supabase-js threw "supabaseUrl is required" from inside
+ * node_modules before our own check could run, so the first thing anyone saw
+ * when setting the project up was a stack trace instead of an instruction.
  */
-export const supabase = createClient(
-  config.supabaseUrl,
-  config.supabaseServiceKey,
+export const supabase = new Proxy(
+  {},
   {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
+    get(_target, prop) {
+      if (!client) client = newClient();
+
+      const value = client[prop];
+      return typeof value === "function" ? value.bind(client) : value;
     },
   }
 );
@@ -28,18 +58,12 @@ export const supabase = createClient(
  * client per sign-in keeps the shared admin client above session-free.
  */
 export function signInClient() {
-  return createClient(config.supabaseUrl, config.supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
+  return newClient();
 }
 
 /** Fail loudly at boot rather than on the first request. */
 export async function connectDb() {
-  if (!config.supabaseUrl || !config.supabaseServiceKey) {
-    throw new Error(
-      "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY must be set. See server/.env.example."
-    );
-  }
+  assertConfigured();
 
   const { error } = await supabase.from("containers").select("id").limit(1);
 
