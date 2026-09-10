@@ -1,13 +1,12 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth.jsx";
 import { isSupervisor } from "../roles.js";
-import { Icon } from "./Icon.jsx";
 
 const LINKS = [
-  { to: "/dashboard", label: "Dashboard", icon: "dashboard", end: false },
-  { to: "/orders", label: "Orders", icon: "orders", end: true },
-  { to: "/orders/new", label: "New Order", icon: "plus", end: false },
-  { to: "/cartons", label: "Cartons", icon: "carton", end: false },
+  { to: "/dashboard", label: "Dashboard", end: false },
+  { to: "/orders", label: "Orders", end: true },
+  { to: "/orders/new", label: "New Order", end: false },
+  { to: "/cartons", label: "Cartons", end: false },
 ];
 
 export function Layout() {
@@ -22,17 +21,20 @@ export function Layout() {
   const canSeeAdmin = isSupervisor(user);
 
   const links = canSeeAdmin
-    ? [...LINKS, { to: "/administration", label: "Administration", icon: "settings" }]
+    ? [
+        ...LINKS,
+        {
+          to: "/administration",
+          label: "Administration",
+          end: false,
+        },
+      ]
     : LINKS;
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <div className="topbar__brand">
-          <div className="brand-mark">
-            <Icon name="cube" size={19} strokeWidth={1.9} />
-          </div>
-
           <div className="brand-text">
             <span className="brand-text__bionic">BIONIC</span>
             <span className="brand-text__portal">PORTAL</span>
@@ -49,8 +51,7 @@ export function Layout() {
                 isActive ? "nav-link nav-link--active" : "nav-link"
               }
             >
-              <Icon name={link.icon} size={16} />
-              <span>{link.label}</span>
+              {link.label}
             </NavLink>
           ))}
         </nav>
@@ -70,8 +71,7 @@ export function Layout() {
             className="signout-button"
             onClick={handleSignOut}
           >
-            <Icon name="signOut" size={16} />
-            <span>Sign out</span>
+            Sign out
           </button>
         </div>
       </header>

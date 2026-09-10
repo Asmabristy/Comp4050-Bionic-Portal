@@ -1,94 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
-import { Icon } from "../components/Icon.jsx";
-import { PageHeader, SectionHeader } from "../components/PageHeader.jsx";
-import { HeroDecor } from "../components/HeroDecor.jsx";
-
-/**
- * Small bar sparkline in the corner of a stat card.
- *
- * Decorative: it gives the card its shape and weight rather than plotting real
- * history, which we don't store. Heights are fixed so cards stay visually
- * steady as the numbers change.
- */
-function Sparkline({ tone, bars }) {
-  const W = 66;
-  const H = 34;
-  const gap = 3;
-  const barW = (W - gap * (bars.length - 1)) / bars.length;
-
-  return (
-    <svg
-      className={`spark spark--${tone}`}
-      viewBox={`0 0 ${W} ${H}`}
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      {bars.map((h, i) => {
-        const barH = Math.max((h / 100) * H, 3);
-
-        return (
-          <rect
-            key={i}
-            x={i * (barW + gap)}
-            y={H - barH}
-            width={barW}
-            height={barH}
-            rx="1.8"
-            /* Earlier bars sit back so the shape reads left to right. */
-            opacity={0.3 + (i / (bars.length - 1)) * 0.7}
-          />
-        );
-      })}
-    </svg>
-  );
-}
-
-/** Ring showing what share of orders are packed. */
-function ProgressRing({ percent }) {
-  const radius = 54;
-  const circumference = 2 * Math.PI * radius;
-  const filled = (percent / 100) * circumference;
-
-  return (
-    <div className="ring">
-      <svg viewBox="0 0 130 130" className="ring__svg" aria-hidden="true">
-        <circle
-          cx="65"
-          cy="65"
-          r={radius}
-          className="ring__track"
-          strokeWidth="11"
-          fill="none"
-        />
-        <circle
-          cx="65"
-          cy="65"
-          r={radius}
-          className="ring__value"
-          strokeWidth="11"
-          fill="none"
-          strokeLinecap="round"
-          strokeDasharray={`${filled} ${circumference - filled}`}
-          transform="rotate(-90 65 65)"
-        />
-      </svg>
-
-      <div className="ring__label">
-        <strong>{percent}%</strong>
-        <span>Packed</span>
-      </div>
-    </div>
-  );
-}
-
-const STATUS_ROWS = [
-  { key: "packed", label: "Packed", tone: "packed" },
-  { key: "draft", label: "Draft", tone: "draft" },
-  { key: "packing", label: "Packing", tone: "packing" },
-  { key: "failed", label: "Failed", tone: "failed" },
-];
 
 export function Dashboard() {
   const [orders, setOrders] = useState([]);
@@ -121,149 +33,144 @@ export function Dashboard() {
       [...orders]
         .sort(
           (a, b) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+            new Date(b.createdAt).getTime() -
+            new Date(a.createdAt).getTime()
         )
         .slice(0, 5),
     [orders]
   );
 
   const packedPercentage =
-    stats.total > 0 ? Math.round((stats.packed / stats.total) * 100) : 0;
+    stats.total > 0
+      ? Math.round((stats.packed / stats.total) * 100)
+      : 0;
 
   const statCards = [
     {
       n: "01",
-      icon: "orders",
-      tone: "blue",
       label: "Total Orders",
       value: stats.total,
       caption: "All orders",
-      bars: [18, 26, 38, 44, 62, 78, 100],
+      tone: "blue",
     },
     {
       n: "02",
-      icon: "box",
-      tone: "green",
       label: "Packed",
       value: stats.packed,
       caption: `${packedPercentage}% of orders`,
-      captionTone: "ok",
-      bars: [22, 30, 34, 52, 70, 84, 100],
+      tone: "green",
     },
     {
       n: "03",
-      icon: "clock",
-      tone: "purple",
       label: "Draft",
       value: stats.draft,
       caption: "Waiting to be packed",
-      bars: [34, 58, 80, 46, 64, 92, 42],
+      tone: "purple",
     },
     {
       n: "04",
-      icon: "alert",
-      tone: "red",
       label: "Failed",
       value: stats.failed,
-      caption: stats.failed > 0 ? "Needs attention" : "No failed orders",
-      captionTone: stats.failed > 0 ? "danger" : undefined,
-      bars: [28, 54, 40, 76, 58, 90, 48],
+      caption:
+        stats.failed > 0
+          ? "Needs attention"
+          : "No failed orders",
+      tone: "red",
     },
   ];
 
   return (
     <>
-      <HeroDecor />
+      <div className="dashboard-head">
+  <div>
+    <p className="dashboard-eyebrow">WELCOME BACK</p>
+    <h1>Dashboard</h1>
+  </div>
 
-      <PageHeader
-        eyebrow="Welcome back"
-        title="Dashboard"
-        subtitle="Here's what's happening with your orders today."
-        actions={
-          <div className="pagehead__cta">
-            <button
-              type="button"
-              className="btn-primary"
-              onClick={() => navigate("/orders/new")}
-            >
-              <Icon name="plus" size={17} />
-              New Order
-            </button>
-            <span className="pagehead__cta-hint">
-              Create a new order and get packing
-            </span>
-          </div>
-        }
-      />
 
-      {error && <div className="notice notice--error">{error}</div>}
+        <button
+          type="button"
+          className="btn-primary dashboard-new-order"
+          onClick={() => navigate("/orders/new")}
+        >
+          <span>+</span>
+          New Order
+        </button>
+      </div>
+
+      {error && (
+        <div className="notice notice--error">
+          {error}
+        </div>
+      )}
 
       {loading ? (
-        <div className="card emptystate">
-          <p className="emptystate__text">Loading dashboard…</p>
+        <div className="card dashboard-loading">
+          Loading dashboard…
         </div>
       ) : (
         <>
-          <section className="statgrid">
+          <section className="dashboard-stats">
             {statCards.map((card) => (
               <article
                 key={card.n}
-                className={`statcard statcard--${card.tone}`}
+                className={`dashboard-stat dashboard-stat--${card.tone}`}
               >
-                <div className={`statcard__tile tone-${card.tone}`}>
-                  <Icon name={card.icon} size={23} strokeWidth={1.9} />
+                <div
+                  className={`dashboard-stat__number dashboard-stat__number--${card.tone}`}
+                >
+                  {card.n}
                 </div>
 
-                <div className="statcard__body">
-                  <span className="statcard__label">{card.label}</span>
-                  <strong className="statcard__value">{card.value}</strong>
+                <div className="dashboard-stat__content">
+                  <span className="dashboard-stat__label">
+                    {card.label}
+                  </span>
+
+                  <strong className="dashboard-stat__value">
+                    {card.value}
+                  </strong>
+
                   <span
-                    className={`statcard__caption${
-                      card.captionTone
-                        ? ` statcard__caption--${card.captionTone}`
+                    className={`dashboard-stat__caption ${
+                      card.tone === "green"
+                        ? "dashboard-stat__caption--green"
+                        : card.tone === "red" &&
+                          stats.failed > 0
+                        ? "dashboard-stat__caption--red"
                         : ""
                     }`}
                   >
                     {card.caption}
                   </span>
                 </div>
-
-                <span className={`statcard__n tone-text-${card.tone}`}>
-                  {card.n}
-                </span>
-
-                <Sparkline tone={card.tone} bars={card.bars} />
               </article>
             ))}
           </section>
 
-          <section className="dashgrid">
-            <article className="card card--fill">
-              <SectionHeader
-                icon={<Icon name="orders" size={18} />}
-                title="Recent Orders"
-                subtitle="Latest activity in Bionic Portal"
-                actions={
-                  <Link to="/orders" className="link-action">
-                    View all orders
-                    <Icon name="arrowRight" size={15} />
-                  </Link>
-                }
-              />
+          <section className="dashboard-main-grid">
+            <article className="dashboard-panel dashboard-recent">
+              <div className="dashboard-panel__head">
+                <div>
+                  <h2>Recent Orders</h2>
+                  <p>Latest activity in Bionic Portal</p>
+                </div>
+
+                <Link
+                  to="/orders"
+                  className="dashboard-link"
+                >
+                  View all →
+                </Link>
+              </div>
 
               {recentOrders.length === 0 ? (
-                <div className="emptystate">
-                  <div className="tile tone-grey">
-                    <Icon name="orders" size={20} />
-                  </div>
-                  <p className="emptystate__title">No orders yet</p>
-                  <p className="emptystate__text">
-                    Create your first order to see it here.
-                  </p>
+                <div className="dashboard-empty">
+                  No orders yet.
                 </div>
               ) : (
-                <div className="table-wrap card__grow">
-                  <table>
+                <div className="dashboard-table-wrap">
+                  <table className="dashboard-table">
                     <thead>
                       <tr>
                         <th>Reference</th>
@@ -277,23 +184,37 @@ export function Dashboard() {
                     <tbody>
                       {recentOrders.map((order) => (
                         <tr key={order.id}>
-                          <td className="mono strong">{order.reference}</td>
-                          <td>{order.items.length}</td>
+                          <td className="mono">
+                            {order.reference}
+                          </td>
+
                           <td>
-                            <span className={`tag tag--${order.status}`}>
+                            {order.items?.length ?? 0}
+                          </td>
+
+                          <td>
+                            <span
+                              className={`tag tag--${order.status}`}
+                            >
                               {order.status}
                             </span>
                           </td>
+
                           <td className="muted">
-                            {new Date(order.createdAt).toLocaleDateString()}
+                            {order.createdAt
+                              ? new Date(
+                                  order.createdAt
+                                ).toLocaleDateString()
+                              : "—"}
                           </td>
+
                           <td className="text-right">
                             <Link
                               to={`/orders/${order.id}`}
-                              className="row-arrow"
+                              className="dashboard-row-arrow"
                               aria-label={`Open ${order.reference}`}
                             >
-                              <Icon name="arrowRight" size={16} />
+                              →
                             </Link>
                           </td>
                         </tr>
@@ -302,101 +223,122 @@ export function Dashboard() {
                   </table>
                 </div>
               )}
-
-              {recentOrders.length > 0 && (
-                <div className="cardfoot">
-                  <span>
-                    Showing {recentOrders.length} of {orders.length}{" "}
-                    {orders.length === 1 ? "order" : "orders"}
-                  </span>
-
-                  <Link to="/orders" className="link-action">
-                    Open orders
-                    <Icon name="arrowRight" size={15} />
-                  </Link>
-                </div>
-              )}
             </article>
 
-            <article className="card card--fill">
-              <SectionHeader
-                icon={<Icon name="chart" size={18} />}
-                title="Packing Summary"
-                subtitle="Current order status across all orders"
-                tone="purple"
-              />
-
-              <div className="summary">
-                <ProgressRing percent={packedPercentage} />
-
-                <ul className="statuslist">
-                  {STATUS_ROWS.map((row) => (
-                    <li key={row.key}>
-                      <i className={`dot dot--${row.tone}`} />
-                      <span>{row.label}</span>
-                      <strong>{stats[row.key]}</strong>
-                    </li>
-                  ))}
-                </ul>
+            <article className="dashboard-panel dashboard-summary">
+              <div className="dashboard-panel__head">
+                <div>
+                  <h2>Packing Summary</h2>
+                  <p>Current order status</p>
+                </div>
               </div>
 
-              {stats.total > 0 && stats.failed === 0 && stats.packed === stats.total && (
-                <div className="banner banner--ok">
-                  <Icon name="check" size={16} />
-                  <span>All orders packed successfully!</span>
-                  <strong>Great work</strong>
+              <div className="dashboard-summary__percentage">
+                <strong>{packedPercentage}%</strong>
+                <span>Packed</span>
+              </div>
+
+              <div className="dashboard-progress">
+                <div
+                  className="dashboard-progress__bar"
+                  style={{
+                    width: `${packedPercentage}%`,
+                  }}
+                />
+              </div>
+
+              <div className="dashboard-summary__rows">
+                <div>
+                  <span>
+                    <i className="dot dot--packed" />
+                    Packed
+                  </span>
+                  <strong>{stats.packed}</strong>
                 </div>
-              )}
+
+                <div>
+                  <span>
+                    <i className="dot dot--draft" />
+                    Draft
+                  </span>
+                  <strong>{stats.draft}</strong>
+                </div>
+
+                <div>
+                  <span>
+                    <i className="dot dot--packing" />
+                    Packing
+                  </span>
+                  <strong>{stats.packing}</strong>
+                </div>
+
+                <div>
+                  <span>
+                    <i className="dot dot--failed" />
+                    Failed
+                  </span>
+                  <strong>{stats.failed}</strong>
+                </div>
+              </div>
             </article>
           </section>
 
-          <section className="card">
-            <SectionHeader
-              icon={<Icon name="bolt" size={18} />}
-              title="Quick Actions"
-              subtitle="Common Bionic Portal tasks"
-              tone="amber"
-            />
+          <section className="dashboard-panel dashboard-quick">
+            <div className="dashboard-panel__head">
+              <div>
+                <h2>Quick Actions</h2>
+                <p>Common Bionic Portal tasks</p>
+              </div>
+            </div>
 
-            <div className="quickgrid">
-              {[
-                {
-                  to: "/orders/new",
-                  icon: "plus",
-                  tone: "blue",
-                  title: "Create New Order",
-                  text: "Enter order and item information",
-                },
-                {
-                  to: "/orders",
-                  icon: "list",
-                  tone: "purple",
-                  title: "View Orders",
-                  text: "Review packing activity and results",
-                },
-                {
-                  to: "/cartons",
-                  icon: "carton",
-                  tone: "green",
-                  title: "View Cartons",
-                  text: "Review available carton types",
-                },
-              ].map((action) => (
-                <Link key={action.to} to={action.to} className="quickcard">
-                  <div className={`tile tone-${action.tone}`}>
-                    <Icon name={action.icon} size={19} />
-                  </div>
+            <div className="dashboard-quick-grid">
+              <Link
+                to="/orders/new"
+                className="dashboard-quick-card"
+              >
+                <div className="dashboard-quick-card__icon">
+                  +
+                </div>
 
-                  <div className="quickcard__text">
-                    <strong>{action.title}</strong>
-                    <span>{action.text}</span>
-                  </div>
-
-                  <span className="quickcard__go">
-                    <Icon name="arrowRight" size={16} />
+                <div>
+                  <strong>Create New Order</strong>
+                  <span>
+                    Enter order and item information
                   </span>
-                </Link>
-              ))}
+                </div>
+              </Link>
+
+              <Link
+                to="/orders"
+                className="dashboard-quick-card"
+              >
+                <div className="dashboard-quick-card__icon">
+                  →
+                </div>
+
+                <div>
+                  <strong>View Orders</strong>
+                  <span>
+                    Review packing activity and results
+                  </span>
+                </div>
+              </Link>
+
+              <Link
+                to="/cartons"
+                className="dashboard-quick-card"
+              >
+                <div className="dashboard-quick-card__icon">
+                    ◇
+                </div>
+
+                <div>
+                  <strong>View Cartons</strong>
+                  <span>
+                    Review available carton types
+                  </span>
+                </div>
+              </Link>
             </div>
           </section>
         </>
