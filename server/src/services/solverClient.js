@@ -75,6 +75,22 @@ export function buildSolverRequest(order) {
  * Convert FitSolver's result into the stable result format used by FitPortal
  * and later consumed by FitVisualizer.
  */
+/*
+ * Axis convention, confirmed against the solver binary.
+ *
+ * Solver returns width/length/depth and positions x/y/z. Packing 60 items of
+ * 10 x 40 x 20 into a carton showed which field belongs to which axis:
+ *
+ *   x steps by 10  -> x = width
+ *   y steps by 20  -> y = depth
+ *   z steps by 40  -> z = length
+ *
+ * FitVisualizer renders with y up, so the height of anything is its `depth`.
+ * Mapping h from `length` made items render at the wrong size for the space
+ * they were given — each one overlapping the next, and boxes poking through
+ * the carton. FitVisualizer's own adapter already maps h from depth; this
+ * brings Portal in line with it.
+ */
 export function normaliseSolverResponse(result, order) {
   if (!result || typeof result !== "object") {
     throw new Error("Solver returned an invalid response.");
@@ -102,8 +118,8 @@ export function normaliseSolverResponse(result, order) {
       dimensions: container
         ? {
             w: container.width,
-            h: container.length,
-            d: container.depth,
+            h: container.depth,
+            d: container.length,
           }
         : null,
 
@@ -133,8 +149,8 @@ export function normaliseSolverResponse(result, order) {
 
           dimensions: {
             w: placement.width,
-            h: placement.length,
-            d: placement.depth,
+            h: placement.depth,
+            d: placement.length,
           },
         })
       ),
