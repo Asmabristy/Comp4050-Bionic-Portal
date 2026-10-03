@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import { Icon } from "../components/Icon.jsx";
+import { Plate, TitleBlock, plateDate } from "../components/Plate.jsx";
 
 export function Orders() {
   const [orders, setOrders] = useState([]);
@@ -44,7 +45,7 @@ export function Orders() {
     if (loading) {
       return (
         <div className="emptystate">
-          <p className="emptystate__text">Loading orders…</p>
+          <p className="emptystate__text">Reading the register…</p>
         </div>
       );
     }
@@ -52,16 +53,14 @@ export function Orders() {
     if (orders.length === 0) {
       return (
         <div className="emptystate">
-          <div className="tile tone-grey">
-            <Icon name="orders" size={20} />
+          <div className="tile">
+            <Icon name="orders" size={18} />
           </div>
 
-          <p className="emptystate__title">
-            No orders yet
-          </p>
+          <p className="emptystate__title">Register empty</p>
 
           <p className="emptystate__text">
-            Create your first order to see it here.
+            Raise your first order and it will be listed here.
           </p>
         </div>
       );
@@ -70,31 +69,30 @@ export function Orders() {
     if (filteredOrders.length === 0) {
       return (
         <div className="emptystate">
-          <div className="tile tone-grey">
-            <Icon name="search" size={20} />
+          <div className="tile">
+            <Icon name="search" size={18} />
           </div>
 
-          <p className="emptystate__title">
-            No matching orders
-          </p>
+          <p className="emptystate__title">Nothing matches</p>
 
           <p className="emptystate__text">
-            Try a different reference or status.
+            No order matches that reference and status. Clear the filters to
+            see the whole register.
           </p>
         </div>
       );
     }
 
     return (
-      <div className="orders-table-wrap">
-        <table className="orders-table">
+      <div className="register">
+        <table>
           <thead>
             <tr>
               <th>Reference</th>
               <th>Items</th>
               <th>Cartons used</th>
               <th>Status</th>
-              <th>Created</th>
+              <th>Raised</th>
               <th />
             </tr>
           </thead>
@@ -102,15 +100,11 @@ export function Orders() {
           <tbody>
             {filteredOrders.map((order) => (
               <tr key={order.id}>
-                <td className="mono strong">
-                  {order.reference}
-                </td>
+                <td className="mono">{order.reference}</td>
 
                 <td>{order.items.length}</td>
 
-                <td>
-                  {order.result?.boxes?.length ?? "—"}
-                </td>
+                <td>{order.result?.boxes?.length ?? "—"}</td>
 
                 <td>
                   <span className={`tag tag--${order.status}`}>
@@ -119,17 +113,17 @@ export function Orders() {
                 </td>
 
                 <td className="muted">
-                  {new Date(
-                    order.createdAt
-                  ).toLocaleDateString()}
+                  {order.createdAt ? plateDate(order.createdAt) : "—"}
                 </td>
 
                 <td className="text-right">
                   <Link
                     to={`/orders/${order.id}`}
-                    className="orders-open-button"
+                    className="row-open"
+                    aria-label={`Open ${order.reference}`}
                   >
                     Open
+                    <Icon name="arrowRight" size={12} />
                   </Link>
                 </td>
               </tr>
@@ -142,69 +136,72 @@ export function Orders() {
 
   return (
     <>
-      <div className="orders-page-head">
-        <h1>Orders</h1>
+      {error && <div className="notice notice--error">{error}</div>}
 
-        <button
-          type="button"
-          className="btn-primary"
-          onClick={() => navigate("/orders/new")}
-        >
-          New order
-        </button>
-      </div>
+      <Plate>
+        <TitleBlock
+          name="Orders"
+          fields={[
+            { label: "Records", value: orders.length },
+            {
+              label: "Showing",
+              value: loading ? "—" : filteredOrders.length,
+            },
+            { label: "Date", value: plateDate() },
+          ]}
+          actions={
+            <button
+              type="button"
+              onClick={() => navigate("/orders/new")}
+            >
+              <Icon name="plus" size={14} />
+              Raise order
+            </button>
+          }
+        />
 
-      {error && (
-        <div className="notice notice--error">
-          {error}
+        <div className="toolbar">
+          <div className="toolbar__search">
+            <label htmlFor="orders-search">Reference</label>
+
+            <input
+              id="orders-search"
+              type="search"
+              placeholder="Search by reference"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="toolbar__filter">
+            <label htmlFor="orders-status">Status</label>
+
+            <select
+              id="orders-status"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="draft">Draft</option>
+              <option value="packing">Packing</option>
+              <option value="packed">Packed</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+
+          {filtersApplied && (
+            <button
+              type="button"
+              className="btn-ghost btn-small"
+              onClick={clearFilters}
+            >
+              Clear filters
+            </button>
+          )}
         </div>
-      )}
 
-      <div className="orders-controls">
-        <div className="orders-search">
-          <input
-            type="search"
-            placeholder="Search by reference..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            aria-label="Search orders by reference"
-          />
-        </div>
-
-        <div className="orders-filter">
-          <label htmlFor="orders-status">
-            Status
-          </label>
-
-          <select
-            id="orders-status"
-            value={statusFilter}
-            onChange={(e) =>
-              setStatusFilter(e.target.value)
-            }
-          >
-            <option value="all">All statuses</option>
-            <option value="draft">Draft</option>
-            <option value="packing">Packing</option>
-            <option value="packed">Packed</option>
-            <option value="failed">Failed</option>
-          </select>
-        </div>
-
-        {filtersApplied && (
-          <button
-            type="button"
-            className="btn-ghost btn-small"
-            onClick={clearFilters}
-          >
-            Clear filters
-          </button>
-        )}
-      </div>
-
-      <div className="orders-card">
         {renderContent()}
-      </div>
+      </Plate>
     </>
   );
 }

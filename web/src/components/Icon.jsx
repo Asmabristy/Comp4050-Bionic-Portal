@@ -9,10 +9,10 @@
 const PATHS = {
   dashboard: (
     <>
-      <rect x="3" y="3" width="7" height="9" rx="1.5" />
-      <rect x="14" y="3" width="7" height="5" rx="1.5" />
-      <rect x="14" y="12" width="7" height="9" rx="1.5" />
-      <rect x="3" y="16" width="7" height="5" rx="1.5" />
+      <rect x="3" y="3" width="7" height="9" />
+      <rect x="14" y="3" width="7" height="5" />
+      <rect x="14" y="12" width="7" height="9" />
+      <rect x="3" y="16" width="7" height="5" />
     </>
   ),
   orders: (
@@ -80,6 +80,12 @@ const PATHS = {
       <path d="M13 6l6 6-6 6" />
     </>
   ),
+  arrowLeft: (
+    <>
+      <path d="M19 12H5" />
+      <path d="M11 6l-6 6 6 6" />
+    </>
+  ),
   signOut: (
     <>
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -110,7 +116,7 @@ const PATHS = {
   ),
 };
 
-export function Icon({ name, size = 18, className = "", strokeWidth = 1.8 }) {
+export function Icon({ name, size = 18, className = "", strokeWidth = 1.5 }) {
   const path = PATHS[name];
   if (!path) return null;
 
@@ -123,8 +129,8 @@ export function Icon({ name, size = 18, className = "", strokeWidth = 1.8 }) {
       fill="none"
       stroke="currentColor"
       strokeWidth={strokeWidth}
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      strokeLinecap="square"
+      strokeLinejoin="miter"
       aria-hidden="true"
       focusable="false"
     >
