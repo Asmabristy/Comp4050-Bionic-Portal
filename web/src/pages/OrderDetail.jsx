@@ -2,6 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
 import FitVisualiser from "@bionic/visualiser";
+import { Icon } from "../components/Icon.jsx";
+import {
+  Plate,
+  TitleBlock,
+  SectionHead,
+  plateDate,
+} from "../components/Plate.jsx";
+import { Measure } from "../components/Measure.jsx";
 import { useAuth } from "../auth.jsx";
 import { isSupervisor } from "../roles.js";
 
@@ -65,9 +73,9 @@ export function OrderDetail() {
           </div>
         )}
 
-        <p className="muted mono">
-          Loading…
-        </p>
+        <div className="emptystate">
+          <p className="emptystate__text">Reading the order…</p>
+        </div>
       </>
     );
   }
@@ -133,326 +141,250 @@ export function OrderDetail() {
         )
       : null;
 
+  const utilizationPercent =
+    utilization !== null ? Math.round(utilization * 100) : null;
+
+  const totalUnits = order.items.reduce(
+    (total, item) => total + (Number(item.quantity) || 1),
+    0
+  );
+
   return (
     <>
-      {/* Back navigation */}
       <button
         type="button"
-        className="order-back-button"
+        className="backlink"
         onClick={() => navigate("/orders")}
       >
-        ← Back to Orders
+        <Icon name="arrowLeft" size={12} />
+        Back to the register
       </button>
 
-      {/* Order heading */}
-      <div className="page-head order-detail-head">
-        <div>
-          <div className="eyebrow">
-            Order
-          </div>
-
-          <h1>{order.reference}</h1>
-        </div>
-
-        <div className="stack-actions">
-          <span
-            className={`tag tag--${order.status}`}
-          >
-            {order.status}
-          </span>
-
-          {canRunSolver && (
-            <button
-              type="button"
-              onClick={pack}
-              disabled={busy}
-            >
-              {busy
-                ? "Packing…"
-                : result
-                  ? "Re-pack"
-                  : "Pack this order"}
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="btn-small btn-danger"
-            onClick={remove}
-          >
-            Delete
-          </button>
-        </div>
-      </div>
-
       {error && (
-        <div className="notice notice--error">
-          {error}
-        </div>
+        <div className="notice notice--error">{error}</div>
       )}
 
       {result?.source === "mock" && (
         <div className="notice notice--hivis">
-          Packed by the built-in stand-in
-          solver, not FitSolver. Set{" "}
-          <span className="mono">
-            USE_MOCK_SOLVER=false
-          </span>{" "}
-          once the Solver package is ready.
+          Packed by the built-in stand-in solver, not FitSolver. Set{" "}
+          <span className="mono">USE_MOCK_SOLVER=false</span> once the Solver
+          package is ready.
         </div>
       )}
 
-      {/* =====================================================
-          ORDER INFORMATION / MANIFEST
-          ===================================================== */}
+      <Plate>
+        <TitleBlock
+          name={order.reference}
+          fields={[
+            {
+              label: "Status",
+              value: (
+                <span className={`tag tag--${order.status}`}>
+                  {order.status}
+                </span>
+              ),
+            },
+            { label: "Items", value: order.items.length },
+            { label: "Units", value: totalUnits },
+            {
+              label: "Cartons offered",
+              value:
+                order.containers
+                  .map((container) => container.reference)
+                  .join(" · ") || "—",
+            },
+            {
+              label: "Raised",
+              value: order.createdAt ? plateDate(order.createdAt) : "—",
+            },
+          ]}
+          actions={
+            <>
+              {canRunSolver && (
+                <button type="button" onClick={pack} disabled={busy}>
+                  {busy
+                    ? "Packing…"
+                    : result
+                      ? "Re-pack"
+                      : "Pack this order"}
+                </button>
+              )}
 
-      <div className="sheet">
-        <div className="sheet__head">
-          <div>
-            <h2>Manifest</h2>
-
-            <p className="muted">
-              Order and packing requirements
-            </p>
-          </div>
-        </div>
-
-        <div className="rows">
-          <div className="row">
-            <div className="row__label">
-              Items
-            </div>
-
-            <div className="mono">
-              {order.items.length}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Carton types
-            </div>
-
-            <div className="mono">
-              {order.containers
-                .map(
-                  (container) =>
-                    container.reference
-                )
-                .join(", ") || "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Order status
-            </div>
-
-            <div>
-              <span
-                className={`tag tag--${order.status}`}
+              <button
+                type="button"
+                className="btn-ghost btn-small btn-danger"
+                onClick={remove}
               >
-                {order.status}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
+                Delete
+              </button>
+            </>
+          }
+        />
 
-      {result?.message && (
-        <div
-          className={`notice ${
-            result.status === "error"
-              ? "notice--error"
-              : ""
-          }`}
-        >
-          {result.message}
-        </div>
-      )}
+        {/* ===================================================
+            LOAD PLAN — the order's one subject, full width
+            =================================================== */}
 
-      {/* =====================================================
-          PACKING RESULT
-          ===================================================== */}
+        {result ? (
+          <div className="loadplan">
+            <div className="loadplan__head">
+              <h2 className="loadplan__title">Load plan</h2>
 
-      {result && (
-        <div className="sheet packing-result">
-          <div className="sheet__head">
-            <div>
-              <h2>Packing Result</h2>
-
-              <p className="muted">
-                Result generated by the packing
-                algorithm
+              <p className="loadplan__note">
+                Computed by{" "}
+                {result.source === "mock"
+                  ? "the stand-in solver"
+                  : "Bionic FitSolver"}
+                {result.solverMs != null && ` in ${result.solverMs} ms`}
               </p>
             </div>
 
-            <span
-              className={`tag ${
-                result.status === "success"
-                  ? "tag--packed"
-                  : "tag--failed"
-              }`}
-            >
-              {result.status === "success"
-                ? "Packed"
-                : result.status}
-            </span>
-          </div>
+            <Measure
+              label="Volume used across the cartons packed"
+              ratio={
+                utilizationPercent !== null
+                  ? `${cartonsUsed} ${
+                      cartonsUsed === 1 ? "carton" : "cartons"
+                    }`
+                  : "Not measured"
+              }
+              percent={utilizationPercent ?? 0}
+              value={utilizationPercent ?? "—"}
+              unit={utilizationPercent !== null ? "%" : ""}
+              short={unpackedItems > 0}
+              deficit={
+                unpackedItems > 0
+                  ? `Not packed — ${unpackedItems} ${
+                      unpackedItems === 1 ? "item" : "items"
+                    }`
+                  : "Everything fitted"
+              }
+            />
 
-          <div className="packing-result__stats">
-            <div className="packing-result__stat">
-              <span>Cartons used</span>
-              <strong>{cartonsUsed}</strong>
-            </div>
+            <div className="loadplan__figures">
+              <div className="loadplan__figure">
+                <span>Cartons used</span>
+                <strong>{cartonsUsed}</strong>
+              </div>
 
-            <div className="packing-result__stat">
-              <span>Items packed</span>
-              <strong>{packedItems}</strong>
-            </div>
+              <div className="loadplan__figure">
+                <span>Items placed</span>
+                <strong>{packedItems}</strong>
+              </div>
 
-            <div className="packing-result__stat">
-              <span>Unpacked</span>
-              <strong>{unpackedItems}</strong>
-            </div>
+              <div className="loadplan__figure">
+                <span>Not packed</span>
+                <strong className={unpackedItems > 0 ? "is-short" : ""}>
+                  {unpackedItems}
+                </strong>
+              </div>
 
-            <div className="packing-result__stat">
-              <span>Utilization</span>
-             <strong>
-           {utilization !== null
-       ? `${(utilization * 100).toFixed(1)}%`
-               : "—"}
-               </strong>
-            </div>
-          </div>
+              <div className="loadplan__figure">
+                <span>Cartons selected</span>
+                <strong style={{ fontSize: "1.0625rem" }}>
+                  {selectedCartons}
+                </strong>
+              </div>
 
-          <div className="packing-result__details">
-            <div className="packing-result__detail">
-              <span>
-                Carton selected
-              </span>
-
-              <strong className="mono">
-                {selectedCartons}
-              </strong>
-            </div>
-
-            <div className="packing-result__detail">
-              <span>
-                Total weight
-              </span>
-
-              <strong className="mono">
-                {totalWeight !== null
-                  ? `${totalWeight.toFixed(2)} kg`
-                  : "—"}
-              </strong>
-            </div>
-
-            <div className="packing-result__detail">
-              <span>
-                Solve time
-              </span>
-
-              <strong className="mono">
-                {result.solverMs != null
-                  ? `${result.solverMs} ms`
-                  : "—"}
-              </strong>
-            </div>
-
-            <div className="packing-result__detail">
-              <span>
-                Solver
-              </span>
-
-              <strong>
-                {result.source ===
-                "bionic-solver"
-                  ? "Bionic FitSolver"
-                  : result.source === "mock"
-                    ? "Mock solver"
-                    : "Bionic FitSolver"}
-              </strong>
+              <div className="loadplan__figure">
+                <span>Total weight</span>
+                <strong style={{ fontSize: "1.0625rem" }}>
+                  {totalWeight !== null
+                    ? `${totalWeight.toFixed(2)} kg`
+                    : "—"}
+                </strong>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        ) : (
+          <div className="emptystate">
+            <div className="tile">
+              <Icon name="cube" size={18} />
+            </div>
 
-     {result?.status === "success" && (
-  <div className="sheet">
-    <div className="sheet__head">
-      <div>
-        <h2>3D Visualization</h2>
+            <p className="emptystate__title">Not packed yet</p>
 
-        <p className="muted">
-          Explore the packing arrangement in the FitVisualizer view.
-        </p>
-      </div>
-    </div>
-
-    <div className="visualizer-placeholder">
-      <div className="visualizer-placeholder__content">
-        <div className="visualizer-placeholder__icon">
-          3D
-        </div>
-
-        <div>
-          <h3>Interactive packing view</h3>
-
-          <p>
-            {show3D
-              ? "Drag to rotate, scroll to zoom, and tap an item for its dimensions."
-              : "Open the FitVisualizer view to inspect the Solver's carton and item placements."}
-          </p>
-        </div>
-      </div>
-
-      <button
-        type="button"
-        className="visualizer-button"
-        onClick={() => setShow3D((open) => !open)}
-        aria-expanded={show3D}
-        aria-controls="fit-visualiser"
-      >
-        {show3D ? "Hide 3D" : "View in 3D"}
-      </button>
-    </div>
-
-    {show3D && (
-      <div className="visualizer-stage" id="fit-visualiser">
-        <FitVisualiser result={result} />
-      </div>
-    )}
-  </div>
-)}
-      {/* =====================================================
-          ITEMS
-          ===================================================== */}
-
-      <div className="sheet">
-        <div className="sheet__head">
-          <div>
-            <h2>Items</h2>
-
-            <p className="muted">
-              Dimensions in mm · Weight in kg
+            <p className="emptystate__text">
+              {canRunSolver
+                ? "Run the packing algorithm to produce a load plan for this order."
+                : "A supervisor runs the packing algorithm for this order."}
             </p>
           </div>
-        </div>
+        )}
 
-        <div
-          style={{
-            overflowX: "auto",
-          }}
-        >
+        {result?.message && (
+          <div
+            className={`notice ${
+              result.status === "error" ? "notice--error" : ""
+            }`}
+            style={{ border: 0, borderTop: "1px solid var(--rule)" }}
+          >
+            {result.message}
+          </div>
+        )}
+      </Plate>
+
+      {/* ===================================================
+          3D INSPECTION
+          =================================================== */}
+
+      {result?.status === "success" && (
+        <Plate>
+          <SectionHead
+            title="Three-dimensional inspection"
+            note="The same result, rendered by FitVisualizer"
+          />
+
+          <div className="visualizer">
+            <div className="visualizer__text">
+              <h3>Interactive packing view</h3>
+
+              <p>
+                {show3D
+                  ? "Drag to rotate, scroll to zoom, and select an item for its dimensions."
+                  : "Open FitVisualizer to inspect the carton and item placements the solver produced."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShow3D((open) => !open)}
+              aria-expanded={show3D}
+              aria-controls="fit-visualiser"
+            >
+              {show3D ? "Hide 3D" : "View in 3D"}
+            </button>
+          </div>
+
+          {show3D && (
+            <div className="visualizer-stage" id="fit-visualiser">
+              <FitVisualiser result={result} />
+            </div>
+          )}
+        </Plate>
+      )}
+
+      {/* ===================================================
+          ITEMS
+          =================================================== */}
+
+      <Plate>
+        <SectionHead
+          title="Items"
+          note="Dimensions in mm · weight in kg"
+          actions={
+            <span className="axon__legend">
+              W across · L back · D up
+            </span>
+          }
+        />
+
+        <div className="register">
           <table>
             <thead>
               <tr>
                 <th>Item code</th>
-                <th>
-                  Item reference
-                </th>
+                <th>Item reference</th>
                 <th>Width</th>
                 <th>Length</th>
                 <th>Depth</th>
@@ -463,50 +395,22 @@ export function OrderDetail() {
             </thead>
 
             <tbody>
-              {order.items.map(
-                (item, index) => (
-                  <tr
-                    key={`${item.itemCode}-${index}`}
-                  >
-                    <td className="mono">
-                      {item.itemCode}
-                    </td>
-
-                    <td>
-                      {item.itemReference}
-                    </td>
-
-                    <td className="mono">
-                      {item.width}
-                    </td>
-
-                    <td className="mono">
-                      {item.length}
-                    </td>
-
-                    <td className="mono">
-                      {item.depth}
-                    </td>
-
-                    <td className="mono">
-                      {item.weight}
-                    </td>
-
-                    <td className="mono">
-                      {item.quantity ?? 1}
-                    </td>
-
-                    <td className="mono">
-                      {item.boxGroup ||
-                        "—"}
-                    </td>
-                  </tr>
-                )
-              )}
+              {order.items.map((item, index) => (
+                <tr key={`${item.itemCode}-${index}`}>
+                  <td className="mono">{item.itemCode}</td>
+                  <td>{item.itemReference}</td>
+                  <td>{item.width}</td>
+                  <td>{item.length}</td>
+                  <td>{item.depth}</td>
+                  <td>{item.weight}</td>
+                  <td>{item.quantity ?? 1}</td>
+                  <td className="mono">{item.boxGroup || "—"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </Plate>
     </>
   );
 }

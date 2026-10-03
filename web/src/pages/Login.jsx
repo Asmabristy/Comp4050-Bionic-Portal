@@ -58,58 +58,71 @@ export function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-background-shape login-background-shape--one" />
-      <div className="login-background-shape login-background-shape--two" />
-
-      <div className="login-shell">
-
-        {/* Branding */}
+      <div className="login-plate">
         <div className="login-brand">
-          <span className="login-brand__bionic">
-            BIONIC
-          </span>
-
-          <span className="login-brand__portal">
-            PORTAL
-          </span>
+          <span className="login-brand__bionic">Bionic</span>
+          <span className="login-brand__portal">Portal</span>
         </div>
 
-        {/* Login card */}
+        <div>
+          <p className="login-plate__statement">
+            Every carton, item and order, specified and measured.
+          </p>
+
+          <dl className="login-plate__spec">
+            <div>
+              <dt>System</dt>
+              <dd>Project Perfect Fit</dd>
+            </div>
+
+            <div>
+              <dt>Packing</dt>
+              <dd>FitSolver</dd>
+            </div>
+
+            <div>
+              <dt>Inspection</dt>
+              <dd>FitVisualizer, in three dimensions</dd>
+            </div>
+
+            <div>
+              <dt>Units</dt>
+              <dd>Millimetres and kilograms</dd>
+            </div>
+          </dl>
+        </div>
+
+        <p className="login-footer">
+          Bionic Portal · Project Perfect Fit
+        </p>
+      </div>
+
+      <div className="login-form-side">
         <div className="login-card">
-          <div className="login-card__heading">
-            <span className="login-eyebrow">
-              {mode === "signin"
-                ? "Welcome back"
-                : "Get started"}
-            </span>
-
-            <h1>
-              {mode === "signin"
-                ? "Sign in to your account"
-                : "Create your account"}
-            </h1>
-
-           
-          </div>
+          <h1>
+            {mode === "signin"
+              ? "Sign in to Bionic Portal"
+              : "Create an account"}
+          </h1>
 
           {error && (
-            <div className="notice notice--error">
+            <div
+              className="notice notice--error"
+              style={{ marginTop: 16 }}
+            >
               {error}
             </div>
           )}
 
           <div className="login-form">
-
             {mode === "signup" && (
               <div className="login-field">
-                <label htmlFor="name">
-                  Name
-                </label>
+                <label htmlFor="name">Name</label>
 
                 <input
                   id="name"
                   type="text"
-                  placeholder="Enter your name"
+                  placeholder="Your name"
                   value={form.name}
                   onChange={set("name")}
                   onKeyDown={onKeyDown}
@@ -119,9 +132,7 @@ export function Login() {
             )}
 
             <div className="login-field">
-              <label htmlFor="email">
-                Email
-              </label>
+              <label htmlFor="email">Email</label>
 
               <input
                 id="email"
@@ -135,19 +146,13 @@ export function Login() {
             </div>
 
             <div className="login-field">
-              <label htmlFor="password">
-                Password
-              </label>
+              <label htmlFor="password">Password</label>
 
               <div className="password-field">
                 <input
                   id="password"
-                  type={
-                    showPassword
-                      ? "text"
-                      : "password"
-                  }
-                  placeholder="Enter your password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Your password"
                   value={form.password}
                   onChange={set("password")}
                   onKeyDown={onKeyDown}
@@ -162,22 +167,17 @@ export function Login() {
                   type="button"
                   className="password-toggle"
                   onClick={() =>
-                    setShowPassword(
-                      (current) => !current
-                    )
+                    setShowPassword((current) => !current)
                   }
                 >
-                  {showPassword
-                    ? "Hide"
-                    : "Show"}
+                  {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
 
-
               {mode === "signup" && (
-                <p className="muted">
-                  Password must be at least 8 characters and include uppercase and lowercase
-                  letters, a number, and a special character.
+                <p className="login-hint">
+                  At least 8 characters, with an uppercase and a lowercase
+                  letter, a number, and a special character.
                 </p>
               )}
             </div>
@@ -190,52 +190,37 @@ export function Login() {
               {busy
                 ? "Working…"
                 : mode === "signin"
-                ? "Sign in"
-                : "Create account"}
+                  ? "Sign in"
+                  : "Create account"}
             </button>
-
           </div>
 
           <div className="login-switch">
             {mode === "signin" ? (
               <>
-                <span>
-                  No account yet?
-                </span>
+                <span>No account yet?</span>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    switchMode("signup")
-                  }
+                  onClick={() => switchMode("signup")}
                 >
                   Create one
                 </button>
               </>
             ) : (
               <>
-                <span>
-                  Already registered?
-                </span>
+                <span>Already registered?</span>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    switchMode("signin")
-                  }
+                  onClick={() => switchMode("signin")}
                 >
                   Sign in
                 </button>
               </>
             )}
           </div>
-
         </div>
-
-        <div className="login-footer">
-          Bionic Portal · Project Perfect Fit
-        </div>
-
       </div>
     </div>
   );

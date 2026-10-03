@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Icon } from "../components/Icon.jsx";
+import {
+  Plate,
+  TitleBlock,
+  SectionHead,
+  plateDate,
+} from "../components/Plate.jsx";
+import { Axon } from "../components/Axon.jsx";
 
 const createBlankCarton = () => ({
   reference: "",
@@ -494,92 +502,160 @@ export function Cartons() {
     }
   };
 
+  const activeCount = cartons.filter((carton) => carton.active).length;
+
+  const EDITABLE = [
+    "width",
+    "length",
+    "depth",
+    "maxWeight",
+    "boxWeight",
+    "maximumBoxes",
+  ];
+
   return (
     <>
-      <div className="page-head">
-        <div>
-          <h1>Cartons</h1>
-        </div>
-      </div>
+      {error && <div className="notice notice--error">{error}</div>}
 
-      {error && (
-        <div className="notice notice--error">
-          {error}
-        </div>
-      )}
+      {message && <div className="notice">{message}</div>}
 
-      {message && (
-        <div className="notice">
-          {message}
-        </div>
-      )}
+      {/* ===================================================
+          THE CATALOGUE — each carton as a specified part
+          =================================================== */}
 
-      {/* Search and status filter */}
+      <Plate>
+        <TitleBlock
+          name="Cartons"
+          fields={[
+            { label: "Parts", value: cartons.length },
+            { label: "Active", value: activeCount },
+            { label: "Showing", value: filteredCartons.length },
+            { label: "Date", value: plateDate() },
+          ]}
+        />
 
-      <div className="carton-toolbar">
-        <div className="carton-search">
-          <input
-            type="search"
-            placeholder="Search cartons..."
-            value={search}
-            onChange={(event) =>
-              setSearch(
-                event.target.value
-              )
-            }
-            aria-label="Search carton catalogue"
-          />
-        </div>
+        <div className="toolbar">
+          <div className="toolbar__search">
+            <label htmlFor="carton-search">Reference</label>
 
-        <div className="carton-status-filter">
-          <label htmlFor="carton-status">
-            Status
-          </label>
-
-          <select
-            id="carton-status"
-            value={statusFilter}
-            onChange={(event) =>
-              setStatusFilter(
-                event.target.value
-              )
-            }
-          >
-            <option value="all">
-              All statuses
-            </option>
-
-            <option value="active">
-              Active
-            </option>
-
-            <option value="inactive">
-              Inactive
-            </option>
-          </select>
-        </div>
-      </div>
-
-      {/* Carton catalogue */}
-
-      <div className="sheet">
-        <div className="sheet__head">
-          <div>
-            <h2>
-              Carton catalogue
-            </h2>
+            <input
+              id="carton-search"
+              type="search"
+              placeholder="Search the catalogue"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </div>
 
-          <span className="mono muted">
-            Dimensions in mm · Weight in kg
+          <div className="toolbar__filter">
+            <label htmlFor="carton-status">Status</label>
+
+            <select
+              id="carton-status"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="all">All statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+
+          <span className="toolbar__count">
+            Dimensions in mm · weight in kg
           </span>
         </div>
 
-        <div
-          style={{
-            overflowX: "auto",
-          }}
-        >
+        <SectionHead
+          title="Catalogue"
+          note="Width runs across, length runs back, depth is the vertical one"
+          actions={
+            <span className="axon__legend">W across · L back · D up</span>
+          }
+        />
+
+        {filteredCartons.length === 0 ? (
+          <div className="emptystate">
+            <div className="tile">
+              <Icon name="carton" size={18} />
+            </div>
+
+            <p className="emptystate__title">No matching carton</p>
+
+            <p className="emptystate__text">
+              Nothing in the catalogue matches that reference and status.
+            </p>
+          </div>
+        ) : (
+          <div className="catalogue">
+            {filteredCartons.map((carton) => (
+              <article
+                key={carton.id}
+                className={`catalogue__part ${
+                  carton.active ? "" : "catalogue__part--inactive"
+                }`.trim()}
+              >
+                <div className="catalogue__head">
+                  <span className="catalogue__ref">{carton.reference}</span>
+
+                  <span
+                    className={`tag ${
+                      carton.active ? "tag--packed" : "tag--draft"
+                    }`}
+                  >
+                    {carton.active ? "Active" : "Inactive"}
+                  </span>
+                </div>
+
+                <Axon
+                  width={carton.width}
+                  length={carton.length}
+                  depth={carton.depth}
+                  span={74}
+                  title={`Carton ${carton.reference}: width ${carton.width}, length ${carton.length}, depth ${carton.depth} millimetres`}
+                />
+
+                <div className="catalogue__spec">
+                  <div>
+                    <span>Max weight</span>
+                    <span>
+                      {carton.maxWeight != null
+                        ? `${carton.maxWeight} kg`
+                        : "—"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span>Box weight</span>
+                    <span>
+                      {carton.boxWeight != null
+                        ? `${carton.boxWeight} kg`
+                        : "—"}
+                    </span>
+                  </div>
+
+                  <div>
+                    <span>Max boxes</span>
+                    <span>{carton.maximumBoxes ?? "—"}</span>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Plate>
+
+      {/* ===================================================
+          THE REGISTER — where a carton is edited
+          =================================================== */}
+
+      <Plate>
+        <SectionHead
+          title="Register"
+          note="Edit a carton, or take it out of service"
+        />
+
+        <div className="register">
           <table>
             <thead>
               <tr>
@@ -589,632 +665,422 @@ export function Cartons() {
                 <th>Depth</th>
                 <th>Max weight</th>
                 <th>Box weight</th>
-                <th>Maximum boxes</th>
+                <th>Max boxes</th>
                 <th>Status</th>
-                <th>Actions</th>
+                <th />
               </tr>
             </thead>
 
             <tbody>
-              {filteredCartons.length ===
-              0 ? (
+              {filteredCartons.length === 0 ? (
                 <tr>
                   <td colSpan="9">
-                    <span className="muted">
-                      No matching carton
-                      types.
-                    </span>
+                    <span className="muted">No matching carton types.</span>
                   </td>
                 </tr>
               ) : (
-                filteredCartons.map(
-                  (carton) => {
-                    const isEditing =
-                      editingId ===
-                      carton.id;
+                filteredCartons.map((carton) => {
+                  const isEditing = editingId === carton.id;
 
-                    if (isEditing) {
-                      return (
-                        <tr
-                          key={
-                            carton.id
-                          }
-                        >
-                          <td>
+                  if (isEditing) {
+                    return (
+                      <tr key={carton.id}>
+                        <td>
+                          <input
+                            value={editForm.reference}
+                            aria-label="Carton reference"
+                            onChange={(event) =>
+                              updateEditField(
+                                "reference",
+                                event.target.value
+                              )
+                            }
+                          />
+                        </td>
+
+                        {EDITABLE.map((key) => (
+                          <td key={key}>
                             <input
-                              value={
-                                editForm.reference
-                              }
-                              onChange={(
-                                event
-                              ) =>
-                                updateEditField(
-                                  "reference",
-                                  event
-                                    .target
-                                    .value
-                                )
+                              type="number"
+                              min="0"
+                              step={key === "maximumBoxes" ? "1" : "any"}
+                              value={editForm[key]}
+                              aria-label={key}
+                              onChange={(event) =>
+                                updateEditField(key, event.target.value)
                               }
                             />
                           </td>
-
-                          {[
-                            "width",
-                            "length",
-                            "depth",
-                            "maxWeight",
-                            "boxWeight",
-                            "maximumBoxes",
-                          ].map(
-                            (
-                              key
-                            ) => (
-                              <td
-                                key={
-                                  key
-                                }
-                              >
-                                <input
-                                  type="number"
-                                  min="0"
-                                  step={
-                                    key ===
-                                    "maximumBoxes"
-                                      ? "1"
-                                      : "any"
-                                  }
-                                  value={
-                                    editForm[
-                                      key
-                                    ]
-                                  }
-                                  onChange={(
-                                    event
-                                  ) =>
-                                    updateEditField(
-                                      key,
-                                      event
-                                        .target
-                                        .value
-                                    )
-                                  }
-                                />
-                              </td>
-                            )
-                          )}
-
-                          <td>
-                            <select
-  className="carton-status-select"
-  value={editForm.active ? "true" : "false"}
-  onChange={(e) =>
-    updateEditField(
-      "active",
-      e.target.value === "true"
-    )
-  }
->
-  <option value="true">Active</option>
-  <option value="false">Inactive</option>
-</select>
-                          </td>
-
-                          <td>
-                            <div className="stack-actions">
-                              <button
-                                type="button"
-                                className="btn-small"
-                                disabled={
-                                  busy
-                                }
-                                onClick={() =>
-                                  saveEdit(
-                                    carton.id
-                                  )
-                                }
-                              >
-                                Save
-                              </button>
-
-                              <button
-                                type="button"
-                                className="btn-small btn-ghost"
-                                disabled={
-                                  busy
-                                }
-                                onClick={
-                                  cancelEdit
-                                }
-                              >
-                                Cancel
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    }
-
-                    return (
-                      <tr
-                        key={
-                          carton.id
-                        }
-                      >
-                        <td className="mono">
-                          {
-                            carton.reference
-                          }
-                        </td>
+                        ))}
 
                         <td>
-                          {carton.width}
-                        </td>
-
-                        <td>
-                          {carton.length}
-                        </td>
-
-                        <td>
-                          {carton.depth}
-                        </td>
-
-                        <td>
-                          {carton.maxWeight ??
-                            "—"}
-                        </td>
-
-                        <td>
-                          {carton.boxWeight ??
-                            "—"}
-                        </td>
-
-                        <td>
-                          {carton.maximumBoxes ??
-                            "—"}
-                        </td>
-
-                        <td>
-                          <span
-                            className={
-                              carton.active
-                                ? "carton-status carton-status--active"
-                                : "carton-status carton-status--inactive"
+                          <select
+                            aria-label="Carton status"
+                            value={editForm.active ? "true" : "false"}
+                            onChange={(e) =>
+                              updateEditField(
+                                "active",
+                                e.target.value === "true"
+                              )
                             }
                           >
-                            {carton.active
-                              ? "Active"
-                              : "Inactive"}
-                          </span>
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                          </select>
                         </td>
 
-                        <td>
+                        <td className="text-right">
                           <div className="stack-actions">
                             <button
                               type="button"
-                              className="btn-small btn-ghost"
-                              onClick={() =>
-                                beginEdit(
-                                  carton
-                                )
-                              }
+                              className="btn-small"
+                              disabled={busy}
+                              onClick={() => saveEdit(carton.id)}
                             >
-                              Edit
+                              Save
                             </button>
 
-                            {carton.active ? (
-                              <button
-                                type="button"
-                                className="btn-small btn-danger"
-                                onClick={() =>
-                                  deactivateCarton(
-                                    carton
-                                  )
-                                }
-                              >
-                                Deactivate
-                              </button>
-                            ) : (
-                              <button
-                                type="button"
-                                className="btn-small"
-                                onClick={() =>
-                                  activateCarton(
-                                    carton
-                                  )
-                                }
-                              >
-                                Activate
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              className="btn-small btn-ghost"
+                              disabled={busy}
+                              onClick={cancelEdit}
+                            >
+                              Cancel
+                            </button>
                           </div>
                         </td>
                       </tr>
                     );
                   }
-                )
+
+                  return (
+                    <tr key={carton.id}>
+                      <td className="mono">{carton.reference}</td>
+                      <td>{carton.width}</td>
+                      <td>{carton.length}</td>
+                      <td>{carton.depth}</td>
+                      <td>{carton.maxWeight ?? "—"}</td>
+                      <td>{carton.boxWeight ?? "—"}</td>
+                      <td>{carton.maximumBoxes ?? "—"}</td>
+
+                      <td>
+                        <span
+                          className={`tag ${
+                            carton.active ? "tag--packed" : "tag--draft"
+                          }`}
+                        >
+                          {carton.active ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+
+                      <td className="text-right">
+                        <div className="stack-actions">
+                          <button
+                            type="button"
+                            className="btn-small btn-ghost"
+                            onClick={() => beginEdit(carton)}
+                          >
+                            Edit
+                          </button>
+
+                          {carton.active ? (
+                            <button
+                              type="button"
+                              className="btn-small btn-danger"
+                              onClick={() => deactivateCarton(carton)}
+                            >
+                              Deactivate
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className="btn-small"
+                              onClick={() => activateCarton(carton)}
+                            >
+                              Activate
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
-      </div>
+      </Plate>
 
-      {/* JSON import */}
+      {/* ===================================================
+          IMPORT
+          =================================================== */}
 
-      <div className="sheet">
-        <div className="sheet__head">
-          <div>
-            <h2>
-              Import boxes.json
-            </h2>
-          </div>
-        </div>
+      <Plate>
+        <SectionHead
+          title="Import boxes.json"
+          note="Bring a whole catalogue in at once"
+        />
 
-        <div className="carton-json-upload">
-          <input
-            type="file"
-            accept=".json,application/json"
-            onChange={importJson}
-          />
+        <div className="plate__body">
+          <div className="carton-json-upload">
+            <input
+              type="file"
+              accept=".json,application/json"
+              onChange={importJson}
+              aria-label="Choose a boxes.json file"
+            />
 
-          {jsonFileName && (
-            <span className="muted">
-              {jsonFileName}
-            </span>
-          )}
-        </div>
-
-        {importedCartons.length >
-          0 && (
-          <div className="carton-import-preview">
-            <div className="sheet__head">
-              <h3>
-                Import preview
-              </h3>
-
-              <span className="muted">
-                {
-                  importedCartons.length
-                }{" "}
-                carton
-                {importedCartons.length ===
-                1
-                  ? ""
-                  : "s"}
+            {jsonFileName && (
+              <span className="csv-file-selected">
+                Loaded {jsonFileName}
               </span>
-            </div>
+            )}
+          </div>
 
-            <div
-              style={{
-                overflowX:
-                  "auto",
-              }}
-            >
-              <table>
-                <thead>
-                  <tr>
-                    <th>
-                      Reference
-                    </th>
-                    <th>
-                      Dimensions
-                    </th>
-                    <th>
-                      Max weight
-                    </th>
-                    <th>
-                      Box weight
-                    </th>
-                    <th>
-                      Maximum boxes
-                    </th>
-                    <th>
-                      Status
-                    </th>
-                    <th>
-                      Action
-                    </th>
-                  </tr>
-                </thead>
+          {importedCartons.length > 0 && (
+            <div className="carton-import-preview">
+              <div className="sectionhead">
+                <div className="sectionhead__text">
+                  <h2 className="sectionhead__title">Import preview</h2>
 
-                <tbody>
-                  {importedCartons.map(
-                    (
-                      carton,
-                      index
-                    ) => (
-                      <tr
-                        key={`${carton.reference}-${index}`}
-                      >
-                        <td className="mono">
-                          {
-                            carton.reference
-                          }
-                        </td>
+                  <p className="sectionhead__subtitle">
+                    {importedCartons.length} carton
+                    {importedCartons.length === 1 ? "" : "s"} read from the
+                    file
+                  </p>
+                </div>
+              </div>
 
-                        <td className="mono">
-                          {
-                            carton.width
-                          }{" "}
-                          ×{" "}
-                          {
-                            carton.length
-                          }{" "}
-                          ×{" "}
-                          {
-                            carton.depth
-                          }
-                        </td>
+              <div className="register">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Reference</th>
+                      <th>W × L × D</th>
+                      <th>Max weight</th>
+                      <th>Box weight</th>
+                      <th>Max boxes</th>
+                      <th>Status</th>
+                      <th>On apply</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {importedCartons.map((carton, index) => (
+                      <tr key={`${carton.reference}-${index}`}>
+                        <td className="mono">{carton.reference}</td>
 
                         <td>
-                          {carton.maxWeight ||
-                            "—"}
+                          {carton.width} × {carton.length} × {carton.depth}
                         </td>
 
-                        <td>
-                          {carton.boxWeight ||
-                            "—"}
-                        </td>
+                        <td>{carton.maxWeight || "—"}</td>
+                        <td>{carton.boxWeight || "—"}</td>
+                        <td>{carton.maximumBoxes || "—"}</td>
 
                         <td>
-                          {carton.maximumBoxes ||
-                            "—"}
-                        </td>
-
-                        <td>
-                          {carton.active
-                            ? "Active"
-                            : "Inactive"}
+                          <span
+                            className={`tag ${
+                              carton.active ? "tag--packed" : "tag--draft"
+                            }`}
+                          >
+                            {carton.active ? "Active" : "Inactive"}
+                          </span>
                         </td>
 
                         <td>
                           <span
                             className={
-                              getImportAction(
-                                carton
-                              ) ===
-                              "Update existing"
+                              getImportAction(carton) === "Update existing"
                                 ? "tag tag--packing"
                                 : "tag tag--packed"
                             }
                           >
-                            {getImportAction(
-                              carton
-                            )}
+                            {getImportAction(carton)}
                           </span>
                         </td>
                       </tr>
-                    )
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
 
-            <div
-              className="stack-actions"
-              style={{
-                marginTop: 16,
-              }}
-            >
-              <button
-                type="button"
-                disabled={busy}
-                onClick={
-                  applyJsonImport
+              <div
+                className="stack-actions"
+                style={{ padding: "var(--s4) var(--s5)" }}
+              >
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={applyJsonImport}
+                >
+                  {busy ? "Applying…" : "Apply changes"}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn-ghost"
+                  disabled={busy}
+                  onClick={() => {
+                    setImportedCartons([]);
+                    setJsonFileName("");
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </Plate>
+
+      {/* ===================================================
+          SPECIFY A NEW CARTON
+          =================================================== */}
+
+      <Plate>
+        <SectionHead
+          title="Add a carton type"
+          note="Added straight to the shared catalogue"
+          actions={
+            <span className="axon__legend">W across · L back · D up</span>
+          }
+        />
+
+        <div className="plate__body">
+          <div className="form-grid">
+            <div className="field">
+              <label htmlFor="new-carton-reference">Reference</label>
+
+              <input
+                id="new-carton-reference"
+                value={form.reference}
+                placeholder="SML"
+                onChange={(event) =>
+                  updateField("reference", event.target.value)
                 }
-              >
-                {busy
-                  ? "Applying…"
-                  : "Apply changes"}
-              </button>
+              />
+            </div>
 
-              <button
-                type="button"
-                className="btn-ghost"
-                disabled={busy}
-                onClick={() => {
-                  setImportedCartons(
-                    []
-                  );
+            <div className="field">
+              <label htmlFor="new-carton-width">Width (mm)</label>
 
-                  setJsonFileName(
-                    ""
-                  );
-                }}
-              >
-                Cancel
-              </button>
+              <input
+                id="new-carton-width"
+                type="number"
+                min="0"
+                step="any"
+                value={form.width}
+                onChange={(event) =>
+                  updateField("width", event.target.value)
+                }
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="new-carton-length">Length (mm)</label>
+
+              <input
+                id="new-carton-length"
+                type="number"
+                min="0"
+                step="any"
+                value={form.length}
+                onChange={(event) =>
+                  updateField("length", event.target.value)
+                }
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="new-carton-depth">Depth (mm)</label>
+
+              <input
+                id="new-carton-depth"
+                type="number"
+                min="0"
+                step="any"
+                value={form.depth}
+                onChange={(event) =>
+                  updateField("depth", event.target.value)
+                }
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="new-carton-max-weight">Max weight (kg)</label>
+
+              <input
+                id="new-carton-max-weight"
+                type="number"
+                min="0"
+                step="any"
+                value={form.maxWeight}
+                placeholder="Optional"
+                onChange={(event) =>
+                  updateField("maxWeight", event.target.value)
+                }
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="new-carton-box-weight">Box weight (kg)</label>
+
+              <input
+                id="new-carton-box-weight"
+                type="number"
+                min="0"
+                step="any"
+                value={form.boxWeight}
+                placeholder="Optional"
+                onChange={(event) =>
+                  updateField("boxWeight", event.target.value)
+                }
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="new-carton-max-boxes">Maximum boxes</label>
+
+              <input
+                id="new-carton-max-boxes"
+                type="number"
+                min="0"
+                step="1"
+                value={form.maximumBoxes}
+                placeholder="Optional"
+                onChange={(event) =>
+                  updateField("maximumBoxes", event.target.value)
+                }
+              />
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Manual add */}
-
-      <div className="sheet">
-        <div className="sheet__head">
-          <div>
-            <h2>
-              Add carton type
-            </h2>
-
-            <p className="muted">
-              Add a carton directly
-              to the shared
-              catalogue.
-            </p>
-          </div>
         </div>
 
-        <div className="form-grid">
-          <div className="field">
-            <label>
-              Reference
-            </label>
+        <div className="preview">
+          <div className="preview__cell">
+            <span className="preview__ref">
+              {form.reference.trim() || "Not specified yet"}
+            </span>
 
-            <input
-              value={
-                form.reference
-              }
-              placeholder="SML"
-              onChange={(event) =>
-                updateField(
-                  "reference",
-                  event.target
-                    .value
-                )
-              }
-            />
-          </div>
-
-          <div className="field">
-            <label>
-              Width (mm)
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={form.width}
-              onChange={(event) =>
-                updateField(
-                  "width",
-                  event.target
-                    .value
-                )
-              }
-            />
-          </div>
-
-          <div className="field">
-            <label>
-              Length (mm)
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={form.length}
-              onChange={(event) =>
-                updateField(
-                  "length",
-                  event.target
-                    .value
-                )
-              }
-            />
-          </div>
-
-          <div className="field">
-            <label>
-              Depth (mm)
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={form.depth}
-              onChange={(event) =>
-                updateField(
-                  "depth",
-                  event.target
-                    .value
-                )
-              }
-            />
-          </div>
-
-          <div className="field">
-            <label>
-              Max weight (kg)
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={
-                form.maxWeight
-              }
-              placeholder="Optional"
-              onChange={(event) =>
-                updateField(
-                  "maxWeight",
-                  event.target
-                    .value
-                )
-              }
-            />
-          </div>
-
-          <div className="field">
-            <label>
-              Box weight (kg)
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="any"
-              value={
-                form.boxWeight
-              }
-              placeholder="Optional"
-              onChange={(event) =>
-                updateField(
-                  "boxWeight",
-                  event.target
-                    .value
-                )
-              }
-            />
-          </div>
-
-          <div className="field">
-            <label>
-              Maximum boxes
-            </label>
-
-            <input
-              type="number"
-              min="0"
-              step="1"
-              value={
-                form.maximumBoxes
-              }
-              placeholder="Optional"
-              onChange={(event) =>
-                updateField(
-                  "maximumBoxes",
-                  event.target
-                    .value
-                )
-              }
+            <Axon
+              width={form.width}
+              length={form.length}
+              depth={form.depth}
+              span={74}
             />
           </div>
         </div>
 
-        <div
-          className="stack-actions"
-          style={{
-            marginTop: 16,
-          }}
-        >
-          <button
-            type="button"
-            onClick={
-              addCarton
-            }
-            disabled={busy}
-          >
-            {busy
-              ? "Adding…"
-              : "Add carton"}
-          </button>
+        <div className="plate__body plate__body--footer">
+          <div className="stack-actions">
+            <button type="button" onClick={addCarton} disabled={busy}>
+              {busy ? "Adding…" : "Add carton"}
+            </button>
+          </div>
         </div>
-      </div>
+      </Plate>
     </>
   );
 }

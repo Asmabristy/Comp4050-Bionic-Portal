@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
+import { Icon } from "../components/Icon.jsx";
+import { Plate, TitleBlock, plateDate } from "../components/Plate.jsx";
 
 export function Administration() {
   const [users, setUsers] = useState([]);
@@ -64,177 +66,186 @@ export function Administration() {
     }
   };
 
-  return (
-    <>
-      <div className="page-head">
-        <div>
-          <h1>Administration</h1>
+  const renderContent = () => {
+    if (loading) {
+      return (
+        <div className="emptystate">
+          <p className="emptystate__text">Reading accounts…</p>
         </div>
-      </div>
+      );
+    }
 
-      {error && (
-        <div className="notice notice--error">{error}</div>
-      )}
-
-      <div className="admin-toolbar">
-        <div className="admin-search">
-          <input
-            type="search"
-            placeholder="Search users..."
-            value={search}
-            onChange={(event) =>
-              setSearch(event.target.value)
-            }
-          />
-        </div>
-
-        <div className="admin-role-filter">
-          <label htmlFor="admin-role-filter">
-            Role
-          </label>
-
-          <select
-            id="admin-role-filter"
-            value={roleFilter}
-            onChange={(event) =>
-              setRoleFilter(event.target.value)
-            }
-          >
-            <option value="all">
-              All roles
-            </option>
-
-            <option value="operator">
-              Operator
-            </option>
-
-            <option value="supervisor">
-              Supervisor
-            </option>
-
-            <option value="admin">
-              Admin
-            </option>
-          </select>
-        </div>
-      </div>
-
-      <div className="sheet">
-        <div className="sheet__head">
-          <div>
-            <h2>User Access</h2>
+    if (users.length === 0) {
+      return (
+        <div className="emptystate">
+          <div className="tile">
+            <Icon name="user" size={18} />
           </div>
+
+          <p className="emptystate__title">No accounts</p>
+
+          <p className="emptystate__text">
+            Nobody has registered yet.
+          </p>
         </div>
+      );
+    }
 
-        <div style={{ overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
+    if (filteredUsers.length === 0) {
+      return (
+        <div className="emptystate">
+          <div className="tile">
+            <Icon name="search" size={18} />
+          </div>
 
-            <tbody>
-              {filteredUsers.map((user) => {
-                const isEditing =
-                  editingId === user.id;
+          <p className="emptystate__title">Nothing matches</p>
 
-                return (
-                  <tr key={user.id}>
-                    <td>
-                      {user.name}
-                    </td>
+          <p className="emptystate__text">
+            No account matches that name, email or role.
+          </p>
+        </div>
+      );
+    }
 
-                    <td className="mono">
-                      {user.email}
-                    </td>
+    return (
+      <div className="register">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Access</th>
+              <th>Account</th>
+              <th />
+            </tr>
+          </thead>
 
-                    <td>
-                      {isEditing ? (
-                        <select
-                          className="admin-access-select"
-                          value={editForm.role}
-                          onChange={(event) =>
-                            setEditForm((current) => ({
-                              ...current,
-                              role: event.target.value,
-                            }))
-                          }
+          <tbody>
+            {filteredUsers.map((user) => {
+              const isEditing = editingId === user.id;
+
+              return (
+                <tr key={user.id}>
+                  <td className="strong">{user.name}</td>
+
+                  <td className="mono">{user.email}</td>
+
+                  <td>
+                    {isEditing ? (
+                      <select
+                        aria-label={`Access level for ${user.name}`}
+                        value={editForm.role}
+                        onChange={(event) =>
+                          setEditForm((current) => ({
+                            ...current,
+                            role: event.target.value,
+                          }))
+                        }
+                      >
+                        <option value="operator">Operator</option>
+                        <option value="supervisor">Supervisor</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    ) : (
+                      <span className="mono">{user.role}</span>
+                    )}
+                  </td>
+
+                  <td>
+                    <span className="tag tag--packed">Active</span>
+                  </td>
+
+                  <td className="text-right">
+                    {isEditing ? (
+                      <div className="stack-actions">
+                        <button
+                          type="button"
+                          className="btn-small"
+                          disabled={saving}
+                          onClick={() => saveEdit(user.id)}
                         >
-                          <option value="operator">
-                            Operator
-                          </option>
+                          {saving ? "Saving…" : "Save"}
+                        </button>
 
-                          <option value="supervisor">
-                            Supervisor
-                          </option>
-
-                          <option value="admin">
-                            Admin
-                          </option>
-                        </select>
-                      ) : (
-                        <span className="tag">
-                          {user.role}
-                        </span>
-                      )}
-                    </td>
-
-                    <td>Active</td>
-
-                    <td>
-                      {isEditing ? (
-                        <div className="stack-actions">
-                          <button
-                            type="button"
-                            className="btn-small"
-                            disabled={saving}
-                            onClick={() =>
-                              saveEdit(user.id)
-                            }
-                          >
-                            {saving ? "Saving…" : "Save"}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="btn-small btn-ghost"
-                            onClick={cancelEdit}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
                         <button
                           type="button"
                           className="btn-small btn-ghost"
-                          onClick={() =>
-                            startEdit(user)
-                          }
+                          onClick={cancelEdit}
                         >
-                          Edit access
+                          Cancel
                         </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        className="btn-small btn-ghost"
+                        onClick={() => startEdit(user)}
+                      >
+                        Change access
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
+    );
+  };
 
-      {loading && (
-        <p className="muted mono">Loading users…</p>
-      )}
+  return (
+    <>
+      {error && <div className="notice notice--error">{error}</div>}
 
-      {!loading && users.length === 0 && !error && (
-        <p className="muted mono">No accounts yet.</p>
-      )}
+      <Plate>
+        <TitleBlock
+          name="Administration"
+          fields={[
+            { label: "Accounts", value: users.length },
+            {
+              label: "Showing",
+              value: loading ? "—" : filteredUsers.length,
+            },
+            { label: "Date", value: plateDate() },
+          ]}
+        />
+
+        <div className="toolbar">
+          <div className="toolbar__search">
+            <label htmlFor="admin-search">Name or email</label>
+
+            <input
+              id="admin-search"
+              type="search"
+              placeholder="Search accounts"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </div>
+
+          <div className="toolbar__filter">
+            <label htmlFor="admin-role-filter">Access level</label>
+
+            <select
+              id="admin-role-filter"
+              value={roleFilter}
+              onChange={(event) => setRoleFilter(event.target.value)}
+            >
+              <option value="all">All levels</option>
+              <option value="operator">Operator</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <span className="toolbar__count">
+            Operator · Supervisor · Admin, in rank order
+          </span>
+        </div>
+
+        {renderContent()}
+      </Plate>
     </>
   );
 }

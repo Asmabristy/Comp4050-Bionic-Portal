@@ -1,6 +1,31 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import { useAuth } from "../auth.jsx";
+import { Plate, TitleBlock, SectionHead, plateDate } from "../components/Plate.jsx";
+import { Measure } from "../components/Measure.jsx";
+import { Icon } from "../components/Icon.jsx";
+
+const SHEETS = [
+  {
+    to: "/orders/new",
+    icon: "plus",
+    name: "Raise an order",
+    note: "Enter items by hand or import a CSV",
+  },
+  {
+    to: "/orders",
+    icon: "orders",
+    name: "Order register",
+    note: "Every order in the shared queue",
+  },
+  {
+    to: "/cartons",
+    icon: "carton",
+    name: "Carton catalogue",
+    note: "Specified parts and their dimensions",
+  },
+];
 
 export function Dashboard() {
   const [orders, setOrders] = useState([]);
@@ -8,6 +33,7 @@ export function Dashboard() {
   const [error, setError] = useState("");
 
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
     api
@@ -36,7 +62,7 @@ export function Dashboard() {
             new Date(b.createdAt).getTime() -
             new Date(a.createdAt).getTime()
         )
-        .slice(0, 5),
+        .slice(0, 6),
     [orders]
   );
 
@@ -45,303 +71,225 @@ export function Dashboard() {
       ? Math.round((stats.packed / stats.total) * 100)
       : 0;
 
-  const statCards = [
+  // What has not been dealt with is named, not buried in the percentage.
+  const waiting = stats.draft + stats.packing;
+
+  const cells = [
+    { label: "Orders raised", value: stats.total, note: "In the shared queue" },
     {
-      n: "01",
-      label: "Total Orders",
-      value: stats.total,
-      caption: "All orders",
-      tone: "blue",
-    },
-    {
-      n: "02",
       label: "Packed",
       value: stats.packed,
-      caption: `${packedPercentage}% of orders`,
-      tone: "green",
+      note: `${packedPercentage}% of the queue`,
     },
+    { label: "Draft", value: stats.draft, note: "Not yet packed" },
     {
-      n: "03",
-      label: "Draft",
-      value: stats.draft,
-      caption: "Waiting to be packed",
-      tone: "purple",
-    },
-    {
-      n: "04",
       label: "Failed",
       value: stats.failed,
-      caption:
-        stats.failed > 0
-          ? "Needs attention"
-          : "No failed orders",
-      tone: "red",
+      note: stats.failed > 0 ? "Needs attention" : "None failed",
+      alert: stats.failed > 0,
     },
   ];
 
   return (
     <>
-      <div className="dashboard-head">
-  <div>
-    <p className="dashboard-eyebrow">WELCOME BACK</p>
-    <h1>Dashboard</h1>
-  </div>
+      {error && <div className="notice notice--error">{error}</div>}
 
+      <Plate>
+        <TitleBlock
+          name="Dashboard"
+          fields={[
+            { label: "Issued to", value: user?.name || "—" },
+            { label: "Role", value: user?.role || "—" },
+            { label: "Date", value: plateDate() },
+          ]}
+          actions={
+            <button
+              type="button"
+              onClick={() => navigate("/orders/new")}
+            >
+              <Icon name="plus" size={14} />
+              Raise order
+            </button>
+          }
+        />
 
-        <button
-          type="button"
-          className="btn-primary dashboard-new-order"
-          onClick={() => navigate("/orders/new")}
-        >
-          <span>+</span>
-          New Order
-        </button>
-      </div>
+        {loading ? (
+          <div className="emptystate">
+            <p className="emptystate__text">Reading the register…</p>
+          </div>
+        ) : (
+          <>
+            <Measure
+              lead
+              label="Queue packed against orders raised"
+              ratio={`${stats.packed} / ${stats.total}`}
+              percent={packedPercentage}
+              value={packedPercentage}
+              unit="%"
+              short={waiting > 0}
+              deficit={
+                stats.total === 0
+                  ? "No orders raised yet"
+                  : waiting > 0
+                    ? `Waiting — ${waiting} ${
+                        waiting === 1 ? "order" : "orders"
+                      }`
+                    : "Queue clear"
+              }
+            />
 
-      {error && (
-        <div className="notice notice--error">
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <div className="card dashboard-loading">
-          Loading dashboard…
-        </div>
-      ) : (
-        <>
-          <section className="dashboard-stats">
-            {statCards.map((card) => (
-              <article
-                key={card.n}
-                className={`dashboard-stat dashboard-stat--${card.tone}`}
-              >
-                <div
-                  className={`dashboard-stat__number dashboard-stat__number--${card.tone}`}
-                >
-                  {card.n}
-                </div>
-
-                <div className="dashboard-stat__content">
-                  <span className="dashboard-stat__label">
-                    {card.label}
-                  </span>
-
-                  <strong className="dashboard-stat__value">
-                    {card.value}
-                  </strong>
-
+            <div className="specstrip">
+              {cells.map((cell) => (
+                <div className="specstrip__cell" key={cell.label}>
+                  <span className="specstrip__label">{cell.label}</span>
+                  <strong className="specstrip__value">{cell.value}</strong>
                   <span
-                    className={`dashboard-stat__caption ${
-                      card.tone === "green"
-                        ? "dashboard-stat__caption--green"
-                        : card.tone === "red" &&
-                          stats.failed > 0
-                        ? "dashboard-stat__caption--red"
-                        : ""
-                    }`}
+                    className={`specstrip__note ${
+                      cell.alert ? "specstrip__note--alert" : ""
+                    }`.trim()}
                   >
-                    {card.caption}
+                    {cell.note}
                   </span>
                 </div>
-              </article>
-            ))}
-          </section>
+              ))}
+            </div>
+          </>
+        )}
+      </Plate>
 
-          <section className="dashboard-main-grid">
-            <article className="dashboard-panel dashboard-recent">
-              <div className="dashboard-panel__head">
-                <div>
-                  <h2>Recent Orders</h2>
-                  <p>Latest activity in Bionic Portal</p>
-                </div>
-
-                <Link
-                  to="/orders"
-                  className="dashboard-link"
-                >
-                  View all →
+      {!loading && (
+        <div className="dash-split">
+          <Plate>
+            <SectionHead
+              title="Recent orders"
+              note="Six most recently raised"
+              actions={
+                <Link to="/orders" className="row-open">
+                  All orders
+                  <Icon name="arrowRight" size={13} />
                 </Link>
-              </div>
+              }
+            />
 
-              {recentOrders.length === 0 ? (
-                <div className="dashboard-empty">
-                  No orders yet.
+            {recentOrders.length === 0 ? (
+              <div className="emptystate">
+                <div className="tile">
+                  <Icon name="orders" size={18} />
                 </div>
-              ) : (
-                <div className="dashboard-table-wrap">
-                  <table className="dashboard-table">
-                    <thead>
-                      <tr>
-                        <th>Reference</th>
-                        <th>Items</th>
-                        <th>Status</th>
-                        <th>Created</th>
-                        <th />
+
+                <p className="emptystate__title">Register empty</p>
+
+                <p className="emptystate__text">
+                  Raise an order and it will appear here.
+                </p>
+              </div>
+            ) : (
+              <div className="register">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Reference</th>
+                      <th>Items</th>
+                      <th>Status</th>
+                      <th>Raised</th>
+                      <th />
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {recentOrders.map((order) => (
+                      <tr key={order.id}>
+                        <td className="mono">{order.reference}</td>
+
+                        <td>{order.items?.length ?? 0}</td>
+
+                        <td>
+                          <span className={`tag tag--${order.status}`}>
+                            {order.status}
+                          </span>
+                        </td>
+
+                        <td className="muted">
+                          {order.createdAt
+                            ? plateDate(order.createdAt)
+                            : "—"}
+                        </td>
+
+                        <td className="text-right">
+                          <Link
+                            to={`/orders/${order.id}`}
+                            className="row-open"
+                            aria-label={`Open ${order.reference}`}
+                          >
+                            Open
+                            <Icon name="arrowRight" size={12} />
+                          </Link>
+                        </td>
                       </tr>
-                    </thead>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Plate>
 
-                    <tbody>
-                      {recentOrders.map((order) => (
-                        <tr key={order.id}>
-                          <td className="mono">
-                            {order.reference}
-                          </td>
+          <Plate>
+            <SectionHead title="Status" note="Current order states" />
 
-                          <td>
-                            {order.items?.length ?? 0}
-                          </td>
-
-                          <td>
-                            <span
-                              className={`tag tag--${order.status}`}
-                            >
-                              {order.status}
-                            </span>
-                          </td>
-
-                          <td className="muted">
-                            {order.createdAt
-                              ? new Date(
-                                  order.createdAt
-                                ).toLocaleDateString()
-                              : "—"}
-                          </td>
-
-                          <td className="text-right">
-                            <Link
-                              to={`/orders/${order.id}`}
-                              className="dashboard-row-arrow"
-                              aria-label={`Open ${order.reference}`}
-                            >
-                              →
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </article>
-
-            <article className="dashboard-panel dashboard-summary">
-              <div className="dashboard-panel__head">
-                <div>
-                  <h2>Packing Summary</h2>
-                  <p>Current order status</p>
-                </div>
+            <div className="dash-breakdown">
+              <div className="dash-breakdown__row">
+                <span>
+                  <i className="dot dot--packed" />
+                  Packed
+                </span>
+                <strong>{stats.packed}</strong>
               </div>
 
-              <div className="dashboard-summary__percentage">
-                <strong>{packedPercentage}%</strong>
-                <span>Packed</span>
+              <div className="dash-breakdown__row">
+                <span>
+                  <i className="dot dot--draft" />
+                  Draft
+                </span>
+                <strong>{stats.draft}</strong>
               </div>
 
-              <div className="dashboard-progress">
-                <div
-                  className="dashboard-progress__bar"
-                  style={{
-                    width: `${packedPercentage}%`,
-                  }}
-                />
+              <div className="dash-breakdown__row">
+                <span>
+                  <i className="dot dot--packing" />
+                  Packing
+                </span>
+                <strong>{stats.packing}</strong>
               </div>
 
-              <div className="dashboard-summary__rows">
-                <div>
-                  <span>
-                    <i className="dot dot--packed" />
-                    Packed
-                  </span>
-                  <strong>{stats.packed}</strong>
-                </div>
-
-                <div>
-                  <span>
-                    <i className="dot dot--draft" />
-                    Draft
-                  </span>
-                  <strong>{stats.draft}</strong>
-                </div>
-
-                <div>
-                  <span>
-                    <i className="dot dot--packing" />
-                    Packing
-                  </span>
-                  <strong>{stats.packing}</strong>
-                </div>
-
-                <div>
-                  <span>
-                    <i className="dot dot--failed" />
-                    Failed
-                  </span>
-                  <strong>{stats.failed}</strong>
-                </div>
-              </div>
-            </article>
-          </section>
-
-          <section className="dashboard-panel dashboard-quick">
-            <div className="dashboard-panel__head">
-              <div>
-                <h2>Quick Actions</h2>
-                <p>Common Bionic Portal tasks</p>
+              <div className="dash-breakdown__row">
+                <span>
+                  <i className="dot dot--failed" />
+                  Failed
+                </span>
+                <strong>{stats.failed}</strong>
               </div>
             </div>
 
-            <div className="dashboard-quick-grid">
-              <Link
-                to="/orders/new"
-                className="dashboard-quick-card"
-              >
-                <div className="dashboard-quick-card__icon">
-                  +
-                </div>
+            <SectionHead title="Sheets" note="Where the work happens" />
 
-                <div>
-                  <strong>Create New Order</strong>
+            <div className="dash-index">
+              {SHEETS.map((sheet) => (
+                <Link
+                  to={sheet.to}
+                  key={sheet.to}
+                  className="dash-index__item"
+                >
                   <span>
-                    Enter order and item information
+                    <span className="dash-index__name">{sheet.name}</span>
+                    <span className="dash-index__note">{sheet.note}</span>
                   </span>
-                </div>
-              </Link>
 
-              <Link
-                to="/orders"
-                className="dashboard-quick-card"
-              >
-                <div className="dashboard-quick-card__icon">
-                  →
-                </div>
-
-                <div>
-                  <strong>View Orders</strong>
-                  <span>
-                    Review packing activity and results
-                  </span>
-                </div>
-              </Link>
-
-              <Link
-                to="/cartons"
-                className="dashboard-quick-card"
-              >
-                <div className="dashboard-quick-card__icon">
-                    ◇
-                </div>
-
-                <div>
-                  <strong>View Cartons</strong>
-                  <span>
-                    Review available carton types
-                  </span>
-                </div>
-              </Link>
+                  <Icon name={sheet.icon} size={16} />
+                </Link>
+              ))}
             </div>
-          </section>
-        </>
+          </Plate>
+        </div>
       )}
     </>
   );
