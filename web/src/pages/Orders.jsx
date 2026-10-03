@@ -147,7 +147,6 @@ export function Orders() {
               label: "Showing",
               value: loading ? "—" : filteredOrders.length,
             },
-            { label: "Date", value: plateDate() },
           ]}
           actions={
             <button

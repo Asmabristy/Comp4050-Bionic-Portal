@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api.js";
 import { Icon } from "../components/Icon.jsx";
-import { Plate, TitleBlock, plateDate } from "../components/Plate.jsx";
+import { Plate, TitleBlock } from "../components/Plate.jsx";
 
 export function Administration() {
   const [users, setUsers] = useState([]);
@@ -207,7 +207,6 @@ export function Administration() {
               label: "Showing",
               value: loading ? "—" : filteredUsers.length,
             },
-            { label: "Date", value: plateDate() },
           ]}
         />
 

@@ -1,26 +1,27 @@
 ---
 name: Bionic Portal
-description: An industrial parts-standard sheet for a warehouse packing system — flat ink on plate stock, one committed field colour, and every millimetre set as a drafting dimension.
+description: An industrial parts-standard sheet for a warehouse packing system, in Thomax's own two blues on white — flat ink on plate stock, a full-height field rail, and every millimetre set as a drafting dimension.
 colors:
-  ground: "#E7E9E4"
-  stock: "#F4F4F1"
-  stock-wash: "#EDEFEA"
-  stock-deep: "#E1E4DD"
-  ink: "#15171A"
-  ink-2: "#474E53"
-  ink-3: "#5F676D"
-  rule: "#C7CBC4"
-  field: "#13342B"
-  field-deep: "#0C2017"
-  field-ink: "#EAEFE8"
-  field-ink-2: "#9FB6A7"
-  field-rule: "#2C4F43"
-  signal: "#F2C200"
-  signal-deep: "#D4A900"
-  status-draft: "#5F676D"
-  status-packing: "#87670F"
-  status-packed: "#1F5C3D"
-  status-failed: "#9E3A26"
+  ground: "#EDF1F8"
+  stock: "#FFFFFF"
+  stock-wash: "#F4F7FC"
+  stock-deep: "#E6EBF4"
+  ink: "#10141C"
+  ink-2: "#454D5C"
+  ink-3: "#5C657A"
+  rule: "#C9D2E2"
+  field: "#012DAE"
+  field-deep: "#011C6E"
+  field-ink: "#F2F6FF"
+  field-ink-2: "#9FB4EC"
+  field-rule: "#2A51C4"
+  signal: "#049DCE"
+  signal-hover: "#2FB4E2"
+  field-alert: "#FF9A91"
+  status-draft: "#5C657A"
+  status-packing: "#03769E"
+  status-packed: "#012DAE"
+  status-failed: "#B3261E"
 typography:
   plate-name:
     fontFamily: "Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif"
@@ -114,15 +115,18 @@ components:
     textColor: "{colors.ink}"
     rounded: "{rounded.none}"
     padding: "24px"
-  nav-link:
+  navcell:
     backgroundColor: "{colors.field}"
     textColor: "{colors.field-ink-2}"
     typography: "{typography.label}"
     rounded: "{rounded.none}"
-    padding: "0 24px"
-  nav-link-active:
+    padding: "16px 24px"
+  navcell-hover:
     backgroundColor: "{colors.field-deep}"
     textColor: "{colors.field-ink}"
+  navcell-active:
+    backgroundColor: "{colors.stock}"
+    textColor: "{colors.ink}"
 ---
 
 # Design System: Bionic Portal
@@ -142,33 +146,43 @@ a gradient. Separation is done entirely with rule weight and stock tint, which
 means alignment carries the whole page: a hairline that fails to meet reads as a
 defect, and that pressure is the point.
 
-Two colours do real work. Spruce green is a field that owns whole regions — the
-topbar, the load plan, the sign-in plate — rather than an accent sprinkled on
-grey. Chrome yellow is the action colour and appears only where something can
-actually be done; a disabled control loses it entirely, so scanning a page for
-yellow is the same as scanning it for what you can press.
+The palette is Thomax's own, sampled from their logo and pinned: deep blue
+`#012DAE`, light blue `#049DCE`, white. Deep blue is a field that owns whole
+regions — the full-height navigation rail, the load plan, the sign-in plate —
+rather than an accent sprinkled on grey. Light blue is the action colour and
+appears only where something can actually be done; a disabled control loses it
+entirely, so scanning a page for light blue is the same as scanning it for what
+you can press. Navigation lives in that rail down the left, and the sheet you
+have open is pulled out of it: the active cell inverts to plate white.
 
 ## Colors
 
 ### Primary
 
-- **Field** `#13342B` — spruce green. A committed field, not an accent: it owns
-  the topbar, the order's load plan, and the whole left half of sign-in. Carries
-  `field-ink` `#EAEFE8` for text and `field-ink-2` `#9FB6A7` for secondary text
-  (tinted from the hue, never grey).
-- **Field deep** `#0C2017` — the active nav cell and the FitVisualizer stage.
+- **Field** `#012DAE` — Thomax deep blue, sampled from the logo. A committed
+  field, not an accent: it owns the full-height navigation rail, the order's
+  load plan, and the whole left half of sign-in. Carries `field-ink` `#F2F6FF`
+  for text and `field-ink-2` `#9FB4EC` for secondary text (tinted from the hue,
+  never grey). White on it reads at 10.6:1.
+- **Field deep** `#011C6E` — a hovered nav cell and the FitVisualizer stage.
+- **Field alert** `#FF9A91` — a named deficit read on the field colour.
 
 ### Secondary
 
-- **Signal** `#F2C200` — chrome yellow. The action colour. Primary buttons, the
-  active nav cell's mark, every focus ring, and the load plan's fill. Hover goes
-  to `signal-deep` `#D4A900`. It never appears on anything inert.
+- **Signal** `#049DCE` — Thomax light blue, sampled from the logo. The action
+  colour. Primary buttons and every focus ring, and nothing else. Ink on it
+  reads at 5.8:1. Hover **lifts** to `signal-hover` `#2FB4E2` rather than
+  deepening, because a darker fill would lose the ink text. It never appears on
+  anything inert — not on the load plan's fill, which is plate white, and not
+  on the active nav cell, which inverts instead.
 
 ### Tertiary — the status inks
 
 Deliberately desaturated so informational never competes with actionable:
-`status-draft` `#5F676D`, `status-packing` `#87670F`, `status-packed` `#1F5C3D`,
-`status-failed` `#9E3A26`.
+`status-draft` `#5C657A` (graphite), `status-packing` `#03769E` (deep sky),
+`status-packed` `#012DAE` (the field blue), `status-failed` `#B3261E` (oxide
+red — the one colour outside the brand three, kept because a failure has to
+read as a failure).
 
 ### Neutral
 
@@ -181,9 +195,9 @@ Deliberately desaturated so informational never competes with actionable:
 
 ### Named Rules
 
-- **The yellow rule.** Chrome yellow marks what can be done and nothing else. A
-  disabled control drops to `stock-wash` on `rule` with `ink-3` text. If an
-  element is yellow and cannot be clicked, it is a bug.
+- **The light-blue rule.** Light blue marks what can be done and nothing else.
+  A disabled control drops to `stock-wash` on `rule` with `ink-3` text. If an
+  element is light blue and cannot be clicked, it is a bug.
 - **Status never borrows the action colour.** Status lives in its own ink family
   and is carried by a mark in a fixed cell, not by a tint on a pill.
 - **Colour owns regions, not edges.** A field colour fills a whole topbar or a
@@ -226,8 +240,11 @@ figure and measured value.
 
 ## Layout
 
+- A two-column shell: a 240px navigation rail and the main column. Below
+  1080px the rail lies down across the top as a strip.
 - Content width `min(1420px, 100% - var(--gutter))`, gutter 48px → 32px at
-  1080px → 24px at 600px.
+  1080px → 24px at 600px. The top strip's contents sit on the sheet's own left
+  edge at any width.
 - Spacing scale is a 4px drafting grid: 4 / 8 / 12 / 16 / 24 / 32 / 48 / 64.
 - Every page is a stack of plates separated by 24px of ground.
 - Rule weights are the only dividers: **2px ink** closes a plate and its head;
@@ -265,7 +282,7 @@ hatched for packing, filled for packed and failed.
 ### Buttons
 
 Rectangular plates, 1px ink border, Archivo Narrow caps tracked 0.13em.
-Primary is chrome yellow on ink. Ghost is transparent with an ink border and
+Primary is Thomax light blue with ink text. Ghost is transparent with an ink border and
 inverts to ink-on-stock on hover. Danger is a `status-failed` outline that fills
 on hover. `btn-small` drops to 8px/12px padding and 0.6875rem. Disabled drops the
 action colour entirely.
@@ -289,11 +306,21 @@ when it is not the first in the plate.
 
 ### Navigation
 
-A solid field plate across the top: the stencilled identity at the left behind a
-`field-rule` divider, nav as fixed cells divided by hairlines, the account block
-at the right. The active cell darkens to `field-deep` and takes a 3px chrome
-yellow bar at its foot. At ≤600px the nav wraps into a two-column grid of 44px
-cells so every destination stays reachable.
+A full-height deep-blue rail down the left, 240px, sticky to the viewport: the
+stencilled identity stacked at the top behind a `field-rule` divider, then nav
+as stacked cells, each an icon and a tracked label, divided by hairlines.
+Administration follows the list behind its own rule. A hovered cell darkens to
+`field-deep`; **the active cell inverts to plate white with ink text**, so the
+rail shows which sheet is currently on the desk. No accent stripe: a coloured
+border down one edge of a list item is the side-tab tell, and it was removed.
+Below 1080px the rail lies down across the top and the cells flow into rows; at
+≤600px they sit two to a row at 46px tall.
+
+### Top strip
+
+A slim white band at the head of the main column, closed by a hairline: the
+sheet's date at the left in tracked caps, the account block and sign-out at the
+right. The date lives here once rather than in every title block.
 
 ### Title block
 
@@ -311,7 +338,8 @@ the point the measurement ends — reversed out of the fill once the fill is wid
 enough to hold it, stepping outside onto the stock when it is not. Underneath,
 the deficit on its own line with a 2px leader: what did not fit is named
 (`NOT PACKED — 3 ITEMS`), never folded into the percentage. On a field-coloured
-plate the fill becomes chrome yellow and the annotation reverses to ink.
+plate the fill becomes plate white and the annotation reverses to the field
+blue — never the action colour, because nothing on that plate is clickable.
 
 ### Axon (signature component)
 
@@ -328,7 +356,7 @@ of numbers headed "Depth" can never again be mistaken for the horizontal one.
 - Give every page a plate and a title block carrying real data.
 - Set every field label, column head and reference in Archivo Narrow caps,
   tracked, and every figure in tabular numerals.
-- Reserve chrome yellow for things that can be done, and take it away when they
+- Reserve light blue for things that can be done, and take it away when they
   cannot.
 - Draw a measured value as a dimension, and name its deficit on its own line.
 - Let a field colour own a whole region when a region deserves the weight.
@@ -339,6 +367,7 @@ of numbers headed "Depth" can never again be mistaken for the horizontal one.
 - Don't add a radius, a shadow, a gradient or a translucent layer.
 - Don't put a label above a heading.
 - Don't use a status colour where an action colour belongs, or the reverse.
+- Don't mark an active nav item with a coloured edge stripe; invert it instead.
 - Don't use monospace to signal "technical"; use tabular figures.
 - Don't put a Unicode glyph where an icon belongs.
 - Don't let a register squeeze a column away; let it scroll.

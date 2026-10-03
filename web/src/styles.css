@@ -4,40 +4,43 @@
    Every carton, item and order is a specified part with a
    number, a dimension table and a line drawing. Division is
    rule weight and stock tint only: no radius, no gradient,
-   no shadow. Spruce green is a field that owns whole
-   regions. Chrome yellow appears ONLY where something can
-   actually be done, and a disabled control loses it.
+   no shadow. The palette is Thomax's own, sampled from
+   their logo: deep blue #012DAE is a field that owns whole
+   regions, light blue #049DCE appears ONLY where something
+   can actually be done, and white is the stock. A disabled
+   control loses the light blue entirely.
    ========================================================= */
 
 :root {
   /* --- stock & ink ------------------------------------- */
-  --ground:      #E7E9E4;   /* the desk the sheet lies on */
-  --stock:       #F4F4F1;   /* the plate itself */
-  --stock-wash:  #EDEFEA;   /* zebra rows, insets */
-  --stock-deep:  #E1E4DD;   /* third tint, axon faces */
+  --ground:      #EDF1F8;   /* the desk the sheet lies on */
+  --stock:       #FFFFFF;   /* the plate itself */
+  --stock-wash:  #F4F7FC;   /* zebra rows, insets */
+  --stock-deep:  #E6EBF4;   /* third tint, axon faces */
 
-  --ink:         #15171A;
-  --ink-2:       #474E53;   /* secondary text  — 7.0:1 */
-  --ink-3:       #5F676D;   /* placeholders    — 5.0:1 */
-  --rule:        #C7CBC4;   /* hairline */
+  --ink:         #10141C;
+  --ink-2:       #454D5C;   /* secondary text  — 7.0:1 */
+  --ink-3:       #5C657A;   /* placeholders    — 5.0:1 */
+  --rule:        #C9D2E2;   /* hairline */
 
-  /* --- field colour: committed, owns regions ------------ */
-  --field:       #13342B;
-  --field-deep:  #0C2017;
-  --field-ink:   #EAEFE8;
-  --field-ink-2: #9FB6A7;   /* tinted from the hue — 6.1:1 */
-  --field-rule:  #2C4F43;
+  /* --- Thomax deep blue: committed field, owns regions -- */
+  --field:       #012DAE;
+  --field-deep:  #011C6E;
+  --field-ink:   #F2F6FF;
+  --field-ink-2: #9FB4EC;   /* tinted from the hue — 6.1:1 */
+  --field-rule:  #2A51C4;
 
-  /* --- action colour: only where you can act ----------- */
-  --signal:      #F2C200;
-  --signal-deep: #D4A900;
-  --signal-ink:  #15171A;
+  /* --- Thomax light blue: only where you can act ------- */
+  --signal:      #049DCE;
+  --signal-hover:#2FB4E2;   /* hover LIFTS; a darker fill loses the ink text */
+  --field-alert: #FF9A91;   /* a deficit, read on the field colour */
+  --signal-ink:  #10141C;
 
   /* --- status inks: desaturated, never compete --------- */
-  --st-draft:    #5F676D;
-  --st-packing:  #87670F;
-  --st-packed:   #1F5C3D;
-  --st-failed:   #9E3A26;
+  --st-draft:    #5C657A;
+  --st-packing:  #03769E;
+  --st-packed:   #012DAE;
+  --st-failed:   #B3261E;
 
   /* --- faces ------------------------------------------- */
   --face: "Archivo", "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -141,7 +144,7 @@ textarea {
 }
 
 .on-field :focus-visible,
-.topbar :focus-visible,
+.sidebar :focus-visible,
 .login-plate :focus-visible {
   outline-color: var(--signal);
 }
@@ -252,7 +255,7 @@ td,
 .app-content {
   width: min(1420px, calc(100% - var(--gutter)));
   margin: 0 auto;
-  padding: var(--s6) 0 var(--s8);
+  padding: var(--s5) 0 var(--s8);
   display: flex;
   flex-direction: column;
   gap: var(--s5);
@@ -260,34 +263,41 @@ td,
 
 
 /* =========================================================
-   TOPBAR — a solid field plate
+   SIDEBAR — a full-height field plate down the left
    ========================================================= */
 
-.topbar {
-  background: var(--field);
-  color: var(--field-ink);
-  border-bottom: 2px solid var(--ink);
-  display: flex;
-  align-items: stretch;
-  min-height: 60px;
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
 }
 
-.topbar__brand {
+.sidebar {
+  background: var(--field);
+  color: var(--field-ink);
+  border-right: 2px solid var(--ink);
   display: flex;
-  align-items: center;
-  padding: 0 var(--s5);
-  border-right: 1px solid var(--field-rule);
+  flex-direction: column;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  min-width: 0;
+}
+
+.sidebar__brand {
+  padding: var(--s5);
+  border-bottom: 1px solid var(--field-rule);
   flex: none;
 }
 
 .brand-text {
   display: flex;
-  align-items: baseline;
-  gap: 0.45em;
+  flex-direction: column;
+  line-height: 1.15;
   font-family: var(--face-narrow);
-  font-size: 0.9375rem;
+  font-size: 1.0625rem;
   font-weight: 700;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.22em;
   text-transform: uppercase;
 }
 
@@ -299,61 +309,101 @@ td,
   color: var(--field-ink-2);
 }
 
-.topbar__nav {
+.sidebar__nav {
   display: flex;
-  align-items: stretch;
+  flex-direction: column;
   flex: 1 1 auto;
-  min-width: 0;
-  overflow-x: auto;
+  min-height: 0;
+  overflow-y: auto;
   scrollbar-width: none;
 }
 
-.topbar__nav::-webkit-scrollbar {
+.sidebar__nav::-webkit-scrollbar {
   display: none;
 }
 
-.nav-link {
+.navcell {
   display: flex;
   align-items: center;
-  padding: 0 var(--s5);
-  border-right: 1px solid var(--field-rule);
+  gap: var(--s3);
+  padding: var(--s4) var(--s5);
+  border-bottom: 1px solid var(--field-rule);
   color: var(--field-ink-2);
   font-family: var(--face-narrow);
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.13em;
   text-transform: uppercase;
-  white-space: nowrap;
   position: relative;
+  flex: none;
   transition: color 120ms var(--ease), background-color 120ms var(--ease);
 }
 
-.nav-link:hover {
+.navcell .icon {
+  flex: none;
+}
+
+.navcell:hover {
   color: var(--field-ink);
   background: var(--field-deep);
 }
 
-.nav-link--active {
-  color: var(--field-ink);
-  background: var(--field-deep);
+/* The open sheet is pulled out of the set: the active cell inverts to plate
+   stock, so the rail shows which sheet is on the desk. No accent stripe —
+   that device belongs to no system and reads as decoration. */
+.navcell--active,
+.navcell--active:hover {
+  color: var(--ink);
+  background: var(--stock);
 }
 
-/* The active cell is marked, not tinted — the one signal in the bar. */
-.nav-link--active::after {
-  content: "";
-  position: absolute;
-  inset: auto 0 0 0;
-  height: 3px;
-  background: var(--signal);
+/* Administration follows the list behind its own rule. */
+.navcell--apart {
+  border-top: 1px solid var(--field-rule);
 }
 
-.topbar__account {
+
+/* =========================================================
+   MAIN COLUMN
+   ========================================================= */
+
+.app-main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.topstrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s4);
+  min-height: 56px;
+  padding-block: var(--s2);
+  padding-inline: max(
+    calc(var(--gutter) / 2),
+    calc((100% - 1420px) / 2)
+  );
+  background: var(--stock);
+  border-bottom: 1px solid var(--rule);
+  flex: none;
+}
+
+.topstrip__date {
+  font-family: var(--face-narrow);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.topstrip__account {
   display: flex;
   align-items: center;
   gap: var(--s3);
-  padding: 0 var(--s4) 0 var(--s5);
-  border-left: 1px solid var(--field-rule);
-  flex: none;
+  min-width: 0;
 }
 
 .account-avatar {
@@ -362,8 +412,8 @@ td,
   flex: none;
   display: grid;
   place-items: center;
-  border: 1px solid var(--field-ink-2);
-  color: var(--field-ink);
+  border: 1px solid var(--ink);
+  color: var(--ink);
   font-family: var(--face-narrow);
   font-size: 0.8125rem;
   font-weight: 700;
@@ -380,35 +430,35 @@ td,
 .account-name {
   font-size: 0.8125rem;
   font-weight: 600;
-  color: var(--field-ink);
+  color: var(--ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 14ch;
+  max-width: 18ch;
 }
 
 .account-role {
-  color: var(--field-ink-2);
+  color: var(--ink-2);
   font-size: 0.625rem;
 }
 
 .signout-button {
   background: transparent;
-  border: 1px solid var(--field-ink-2);
-  color: var(--field-ink);
+  border: 1px solid var(--ink);
+  color: var(--ink);
   font-family: var(--face-narrow);
   font-size: 0.6875rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   padding: var(--s2) var(--s3);
   cursor: pointer;
-  transition: background-color 120ms var(--ease), border-color 120ms var(--ease);
+  transition: background-color 120ms var(--ease), color 120ms var(--ease);
 }
 
 .signout-button:hover {
-  background: var(--field-deep);
-  border-color: var(--field-ink);
+  background: var(--ink);
+  color: var(--stock);
 }
 
 
@@ -1036,11 +1086,11 @@ button {
 }
 
 button:hover {
-  background: var(--signal-deep);
+  background: var(--signal-hover);
 }
 
 button:active {
-  background: var(--signal-deep);
+  background: var(--signal-hover);
   translate: 0 1px;
 }
 
@@ -1686,7 +1736,7 @@ tbody td select:focus {
 }
 
 .loadplan__figure > strong.is-short {
-  color: var(--signal);
+  color: var(--field-alert);
 }
 
 .loadplan .measure__track::before,
@@ -1694,17 +1744,19 @@ tbody td select:focus {
   background: var(--field-ink-2);
 }
 
+/* A white fill here, not the action colour: nothing on this plate is
+   clickable, and light blue is reserved for things that are. */
 .loadplan .measure__fill {
-  background: var(--signal);
+  background: var(--field-ink);
 }
 
 .loadplan .measure__value--inside {
-  color: var(--signal-ink);
+  color: var(--field);
 }
 
 .loadplan .measure__value--inside .measure__unit {
-  color: var(--signal-ink);
-  opacity: 0.7;
+  color: var(--field);
+  opacity: 0.75;
 }
 
 .loadplan .measure__value--outside {
@@ -1726,7 +1778,7 @@ tbody td select:focus {
 }
 
 .loadplan .measure__deficit--short {
-  color: var(--signal);
+  color: var(--field-alert);
 }
 
 /* --- the FitVisualizer stage ---------------------------- */
@@ -2199,6 +2251,38 @@ tbody td select:focus {
     --gutter: 32px;
   }
 
+  /* No room for a rail beside the sheet, so it lies down across the top. */
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .sidebar__brand {
+    padding: var(--s4) var(--gutter);
+  }
+
+  .sidebar__nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    overflow: visible;
+  }
+
+  .navcell {
+    flex: 1 1 auto;
+    justify-content: center;
+    border-right: 1px solid var(--field-rule);
+  }
+
+  .navcell--apart {
+    border-top: 0;
+  }
+
   .dash-split {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -2232,27 +2316,8 @@ tbody td select:focus {
     border-bottom: 1px solid var(--rule);
   }
 
-  .topbar {
-    flex-wrap: wrap;
-  }
-
-  .topbar__brand {
-    flex: 1 1 auto;
-  }
-
-  .topbar__account {
-    border-left: 1px solid var(--field-rule);
-  }
-
-  .topbar__nav {
-    flex: 1 1 100%;
-    order: 3;
-    border-top: 1px solid var(--field-rule);
-    min-height: 46px;
-  }
-
-  .nav-link:first-child {
-    padding-left: var(--s5);
+  .topstrip {
+    min-height: 52px;
   }
 }
 
@@ -2292,22 +2357,16 @@ tbody td select:focus {
     border-right: 0;
   }
 
-  /* Every destination stays reachable instead of hiding off the scroll. */
-  .topbar__nav {
-    flex-wrap: wrap;
-    overflow-x: visible;
+  /* Two cells to a row, so every destination stays a thumb's reach away. */
+  .navcell {
+    flex: 1 1 45%;
+    min-height: 46px;
+    padding: var(--s3);
+    gap: var(--s2);
   }
 
-  .nav-link {
-    flex: 1 1 50%;
-    justify-content: center;
-    min-height: 44px;
-    padding: 0 var(--s3);
-    border-bottom: 1px solid var(--field-rule);
-  }
-
-  .nav-link:first-child {
-    padding-left: var(--s3);
+  .account-name {
+    max-width: 12ch;
   }
 
   .plate__actions {
