@@ -5,7 +5,6 @@ import {
   Plate,
   TitleBlock,
   SectionHead,
-  plateDate,
 } from "../components/Plate.jsx";
 import { Axon } from "../components/Axon.jsx";
 
@@ -530,7 +529,6 @@ export function Cartons() {
             { label: "Parts", value: cartons.length },
             { label: "Active", value: activeCount },
             { label: "Showing", value: filteredCartons.length },
-            { label: "Date", value: plateDate() },
           ]}
         />
 

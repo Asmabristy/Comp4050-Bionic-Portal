@@ -82,9 +82,16 @@ what a packed carton actually is.
 ## Brand Commitments
 
 - The names **Bionic Portal** and **Project Perfect Fit** stay.
-- Nothing else is locked. There are no client logos, colours or guidelines in the
-  repository, and Thomax has set no identity requirements. The current blue,
-  typography and layout are prior work, not commitments.
+- **The palette is Thomax's own, sampled from their logo and pinned by the
+  user:** deep blue `#012DAE`, light blue `#049DCE`, and white. These three are
+  the scheme; any other colour in the interface must earn its place as a
+  functional signal (a failure state, a hairline, a text tint) rather than as
+  decoration. The deep blue is the structural field, the light blue is the
+  action colour.
+- **Navigation lives in a left sidebar**, pinned by the user against a reference
+  dashboard they supplied. Not a top bar.
+- Typography and layout are not locked. Archivo / Archivo Narrow and the
+  standards-sheet layout are current work, open to change.
 
 ## Evidence on Hand
 

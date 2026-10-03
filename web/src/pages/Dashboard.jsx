@@ -100,7 +100,6 @@ export function Dashboard() {
           fields={[
             { label: "Issued to", value: user?.name || "—" },
             { label: "Role", value: user?.role || "—" },
-            { label: "Date", value: plateDate() },
           ]}
           actions={
             <button

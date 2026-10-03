@@ -8,7 +8,6 @@ import {
   Plate,
   TitleBlock,
   SectionHead,
-  plateDate,
 } from "../components/Plate.jsx";
 import { Axon } from "../components/Axon.jsx";
 
@@ -281,7 +280,6 @@ export function NewOrder() {
             { label: "Reference", value: reference.trim() || "Not set" },
             { label: "Item rows", value: items.length },
             { label: "Units", value: totalUnits },
-            { label: "Date", value: plateDate() },
           ]}
         />
 
