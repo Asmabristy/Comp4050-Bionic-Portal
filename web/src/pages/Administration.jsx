@@ -1,5 +1,6 @@
+
 import { useEffect, useState } from "react";
-import { api } from "../api.js";
+import { api, tokenStore } from "../api.js";
 import { Icon } from "../components/Icon.jsx";
 import { Plate, TitleBlock } from "../components/Plate.jsx";
 
@@ -8,6 +9,9 @@ export function Administration() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -16,11 +20,25 @@ export function Administration() {
   const [editForm, setEditForm] = useState({ role: "operator" });
 
   useEffect(() => {
-    api
-      .listUsers()
-      .then(({ users }) => setUsers(users))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
+    let cancelled = false;
+
+    Promise.all([api.listUsers(), api.me()])
+      .then(([usersResponse, meResponse]) => {
+        if (cancelled) return;
+
+        setUsers(usersResponse.users);
+        setCurrentUser(meResponse.user);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const filteredUsers = users.filter((user) => {
@@ -31,8 +49,7 @@ export function Administration() {
       user.email.toLowerCase().includes(query);
 
     const matchesRole =
-      roleFilter === "all" ||
-      user.role === roleFilter;
+      roleFilter === "all" || user.role === roleFilter;
 
     return matchesSearch && matchesRole;
   });
@@ -63,6 +80,40 @@ export function Administration() {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const deleteUser = async (user) => {
+    if (user.id === currentUser?.id) {
+      setError("You cannot delete your own account.");
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to permanently delete "${user.name || user.email}"?\n\n` +
+      `Email: ${user.email}\n\n` +
+      "This action cannot be undone. Existing orders will be preserved."
+    );
+
+    if (!confirmed) return;
+
+    setError("");
+    setDeletingId(user.id);
+
+    try {
+      await api.deleteUser(user.id);
+
+      setUsers((current) =>
+        current.filter((u) => u.id !== user.id)
+      );
+
+      if (editingId === user.id) {
+        cancelEdit();
+      }
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -116,13 +167,17 @@ export function Administration() {
               <th>Email</th>
               <th>Access</th>
               <th>Account</th>
-              <th />
+              <th>Actions</th>
             </tr>
           </thead>
 
           <tbody>
             {filteredUsers.map((user) => {
               const isEditing = editingId === user.id;
+              const isDeleting = deletingId === user.id;
+              const isSelf = currentUser?.id === user.id;
+              const canDelete =
+                currentUser?.role === "admin" && !isSelf;
 
               return (
                 <tr key={user.id}>
@@ -152,7 +207,9 @@ export function Administration() {
                   </td>
 
                   <td>
-                    <span className="tag tag--packed">Active</span>
+                    <span className="tag tag--packed">
+                      Active
+                    </span>
                   </td>
 
                   <td className="text-right">
@@ -161,7 +218,7 @@ export function Administration() {
                         <button
                           type="button"
                           className="btn-small"
-                          disabled={saving}
+                          disabled={saving || deletingId !== null}
                           onClick={() => saveEdit(user.id)}
                         >
                           {saving ? "Saving…" : "Save"}
@@ -170,19 +227,36 @@ export function Administration() {
                         <button
                           type="button"
                           className="btn-small btn-ghost"
+                          disabled={saving || deletingId !== null}
                           onClick={cancelEdit}
                         >
                           Cancel
                         </button>
                       </div>
                     ) : (
-                      <button
-                        type="button"
-                        className="btn-small btn-ghost"
-                        onClick={() => startEdit(user)}
-                      >
-                        Change access
-                      </button>
+                      <div className="stack-actions">
+                        <button
+                          type="button"
+                          className="btn-small btn-ghost"
+                          disabled={saving || deletingId !== null}
+                          onClick={() => startEdit(user)}
+                        >
+                          Change access
+                        </button>
+
+                        {canDelete && (
+                          <button
+                            type="button"
+                            className="btn-small btn-ghost"
+                            disabled={saving || deletingId !== null}
+                            onClick={() => deleteUser(user)}
+                            aria-label={`Delete account for ${user.name || user.email}`}
+                            style={{ color: "#c0392b" }}
+                          >
+                            {isDeleting ? "Deleting…" : "Delete"}
+                          </button>
+                        )}
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -196,7 +270,11 @@ export function Administration() {
 
   return (
     <>
-      {error && <div className="notice notice--error">{error}</div>}
+      {error && (
+        <div className="notice notice--error">
+          {error}
+        </div>
+      )}
 
       <Plate>
         <TitleBlock
@@ -212,7 +290,9 @@ export function Administration() {
 
         <div className="toolbar">
           <div className="toolbar__search">
-            <label htmlFor="admin-search">Name or email</label>
+            <label htmlFor="admin-search">
+              Name or email
+            </label>
 
             <input
               id="admin-search"
@@ -224,7 +304,9 @@ export function Administration() {
           </div>
 
           <div className="toolbar__filter">
-            <label htmlFor="admin-role-filter">Access level</label>
+            <label htmlFor="admin-role-filter">
+              Access level
+            </label>
 
             <select
               id="admin-role-filter"

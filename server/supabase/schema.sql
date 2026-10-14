@@ -1,3 +1,4 @@
+
 -- FitPortal schema for Supabase (Postgres).
 --
 -- Run this once in the Supabase dashboard: SQL Editor -> New query -> paste -> Run.
@@ -5,8 +6,8 @@
 -- Design notes:
 --   * Users live in Supabase Auth (auth.users). `profiles` holds our own fields
 --     (name, role) and is keyed by the auth user id.
---   * An order's items, containers and packing result are stored as jsonb rather
---     than separate tables. They are always read and written as a whole document,
+--   * An order's items, containers and packing result are stored as jsonb
+--     rather than separate tables. They are always read and written as a whole document,
 --     and keeping them as one blob means the JSON the API returns is byte-for-byte
 --     what FitVisualizer already expects. Splitting them into rows would buy us
 --     nothing and would risk changing that contract.
@@ -66,7 +67,11 @@ create policy "containers_select_authenticated"
 create table if not exists public.orders (
   id         uuid primary key default gen_random_uuid(),
   reference  text not null,
-  owner      uuid not null references auth.users (id) on delete cascade,
+
+  -- Preserve existing orders when their creator's account is deleted.
+  -- The owner becomes NULL rather than deleting the order.
+  owner      uuid references auth.users (id) on delete set null,
+
   status     text not null default 'draft'
                check (status in ('draft', 'packing', 'packed', 'failed')),
 
@@ -83,15 +88,21 @@ create table if not exists public.orders (
   updated_at timestamptz not null default now()
 );
 
-create index if not exists orders_owner_idx      on public.orders (owner);
-create index if not exists orders_status_idx     on public.orders (status);
-create index if not exists orders_created_at_idx on public.orders (created_at desc);
+create index if not exists orders_owner_idx
+  on public.orders (owner);
+
+create index if not exists orders_status_idx
+  on public.orders (status);
+
+create index if not exists orders_created_at_idx
+  on public.orders (created_at desc);
 
 alter table public.orders enable row level security;
 
 -- Orders are a shared work queue: an operator raises one and a supervisor packs
--- it, so every signed-in user can read every order. `owner` records who raised
--- it, and the API restricts deletion to that person or a supervisor.
+-- it, so every signed-in user can read every order.
+-- The owner records who raised the order while their account exists.
+-- The API restricts deletion to the owner, a Supervisor, or an Admin.
 drop policy if exists "orders_select_own" on public.orders;
 drop policy if exists "orders_modify_own" on public.orders;
 
@@ -139,3 +150,45 @@ drop trigger if exists orders_touch_updated_at on public.orders;
 create trigger orders_touch_updated_at
   before update on public.orders
   for each row execute function public.touch_updated_at();
+
+-- ---------------------------------------------------------------- auth signup profile
+
+-- Automatically create an Operator profile when a new
+-- Supabase Auth account is registered.
+--
+-- The role is always assigned by the database, not by
+-- user-provided metadata.
+--
+-- Existing Supervisor and Admin profiles are preserved.
+
+create or replace function public.handle_new_auth_user()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  insert into public.profiles (
+    id,
+    email,
+    name,
+    role
+  )
+  values (
+    new.id,
+    coalesce(new.email, ''),
+    coalesce(new.raw_user_meta_data ->> 'name', ''),
+    'operator'
+  )
+  on conflict (id) do nothing;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row
+  execute function public.handle_new_auth_user();

@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import * as orderStore from "../data/orders.js";
 import * as containerStore from "../data/containers.js";
@@ -181,7 +182,7 @@ function validateContainers(containers) {
   });
 }
 
-/** GET /api/orders — this user's order history, newest first. */
+/** GET /api/orders — shared order history, newest first. */
 ordersRouter.get(
   "/",
   asyncRoute(async (req, res) => {
@@ -402,12 +403,17 @@ ordersRouter.delete(
     }
 
     // Reading is shared, but deleting someone else's order is not.
+    // Supervisors and Admins may delete any order, including historical
+    // orders whose original creator's account has been deleted.
     const isOwner = existing.ownerId === req.user.id;
+    const hasManagementAccess = ["supervisor", "admin"].includes(
+      req.user.role
+    );
 
-    if (!isOwner && req.user.role !== "supervisor") {
+    if (!isOwner && !hasManagementAccess) {
       throw new HttpError(
         403,
-        "Only the person who raised this order, or a supervisor, can delete it."
+        "Only the person who raised this order, a supervisor, or an admin can delete it."
       );
     }
 

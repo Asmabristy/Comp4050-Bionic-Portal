@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "../auth.jsx";
 
@@ -15,37 +16,60 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
 
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
 
   const set = (key) => (e) =>
-    setForm({
-      ...form,
+    setForm((current) => ({
+      ...current,
       [key]: e.target.value,
-    });
+    }));
 
   const submit = async () => {
+    if (busy) return;
+
     setError("");
+    setSuccess("");
     setBusy(true);
 
     try {
       if (mode === "signin") {
         await signIn(form.email, form.password);
       } else {
-        await signUp(
+        const result = await signUp(
           form.name,
           form.email,
           form.password
         );
+
+        if (result?.requiresEmailVerification) {
+          setSuccess(
+            result.message ||
+              "Please check your email and verify your account before signing in."
+          );
+
+          // Clear the password after registration.
+          setForm((current) => ({
+            ...current,
+            password: "",
+          }));
+
+          setShowPassword(false);
+        } else {
+          setError(
+            "Registration could not be confirmed. Please try again."
+          );
+        }
       }
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setBusy(false);
     }
   };
 
   const onKeyDown = (e) => {
-    if (e.key === "Enter") {
+    if (e.key === "Enter" && !busy) {
       submit();
     }
   };
@@ -53,7 +77,12 @@ export function Login() {
   const switchMode = (nextMode) => {
     setMode(nextMode);
     setError("");
+    setSuccess("");
     setShowPassword(false);
+    setForm((current) => ({
+      ...current,
+      password: "",
+    }));
   };
 
   return (
@@ -109,8 +138,29 @@ export function Login() {
             <div
               className="notice notice--error"
               style={{ marginTop: 16 }}
+              role="alert"
             >
               {error}
+            </div>
+          )}
+
+          {success && (
+            <div
+              className="notice"
+              style={{
+                marginTop: 16,
+                padding: 14,
+                border: "1px solid #16a34a",
+                borderRadius: 8,
+                backgroundColor: "#f0fdf4",
+                color: "#166534",
+              }}
+              role="status"
+            >
+              <strong>Check your email</strong>
+              <p style={{ margin: "8px 0 0" }}>
+                {success}
+              </p>
             </div>
           )}
 
@@ -183,6 +233,7 @@ export function Login() {
             </div>
 
             <button
+              type="button"
               className="login-submit"
               onClick={submit}
               disabled={busy}

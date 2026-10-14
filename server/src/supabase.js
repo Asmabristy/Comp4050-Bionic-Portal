@@ -1,3 +1,4 @@
+
 import { createClient } from "@supabase/supabase-js";
 import { config } from "./config.js";
 
@@ -26,16 +27,10 @@ function newClient() {
 let client = null;
 
 /**
- * Server-side Supabase client.
+ * Shared server-side Supabase client.
  *
- * Uses the service_role key, which bypasses Row Level Security. That is what we
- * want here — the API is the thing enforcing ownership and roles, the same way
- * it did against Mongo. This key must never reach the browser.
- *
- * Built on first use rather than at import. Creating it eagerly meant that with
- * no .env present, supabase-js threw "supabaseUrl is required" from inside
- * node_modules before our own check could run, so the first thing anyone saw
- * when setting the project up was a stack trace instead of an instruction.
+ * Uses the service_role key for trusted backend database operations.
+ * This key must never be exposed to the browser.
  */
 export const supabase = new Proxy(
   {},
@@ -50,22 +45,45 @@ export const supabase = new Proxy(
 );
 
 /**
- * A throwaway client for verifying a password.
- *
- * signInWithPassword() attaches the signed-in user's session to whichever
- * client performs it, and every later query on that client then runs as that
- * user under Row Level Security instead of as service_role. Using a fresh
- * client per sign-in keeps the shared admin client above session-free.
+ * A separate client for password sign-in and session refresh.
+ * Keeps user sessions isolated from the shared admin client.
  */
 export function signInClient() {
   return newClient();
+}
+
+/**
+ * Public signup client for Operator registration.
+ *
+ * Uses the anon key so new users follow Supabase's normal
+ * email confirmation process rather than admin.createUser().
+ */
+export function signUpClient() {
+  assertConfigured();
+
+  if (!config.supabaseAnonKey) {
+    throw new Error(
+      "SUPABASE_ANON_KEY must be configured in server/.env."
+    );
+  }
+
+  return createClient(config.supabaseUrl, config.supabaseAnonKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+  });
 }
 
 /** Fail loudly at boot rather than on the first request. */
 export async function connectDb() {
   assertConfigured();
 
-  const { error } = await supabase.from("containers").select("id").limit(1);
+  const { error } = await supabase
+    .from("containers")
+    .select("id")
+    .limit(1);
 
   if (error) {
     throw new Error(
