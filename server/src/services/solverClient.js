@@ -1,5 +1,6 @@
-import { config } from "../config.js";
-import { mockPack } from "./mockSolver.js";
+const { solve } = await import("@bionic/solver");
+
+import { SolveAlgorithm } from "@bionic/solver";
 
 /**
  * Convert the Portal's order items into the format expected by FitSolver.
@@ -130,14 +131,14 @@ export function normaliseSolverResponse(result, order) {
       items: (resultBox.placements || []).map(
         (placement, placementIndex) => ({
           itemId:
-            placement.itemReference ||
-            placement.itemCode ||
+            placement.item.itemReference ||
+            placement.item.itemCode ||
             `placement-${boxIndex + 1}-${placementIndex + 1}`,
 
-          itemCode: placement.itemCode ?? null,
+          itemCode: placement.item.itemCode ?? null,
 
           itemReference:
-            placement.itemReference ?? null,
+            placement.item.itemReference ?? null,
 
           position: {
             x: placement.x,
@@ -148,9 +149,9 @@ export function normaliseSolverResponse(result, order) {
           rotation: "XYZ",
 
           dimensions: {
-            w: placement.width,
-            h: placement.depth,
-            d: placement.length,
+            w: placement.item.width,
+            h: placement.item.depth,
+            d: placement.item.length,
           },
         })
       ),
@@ -168,7 +169,7 @@ export function normaliseSolverResponse(result, order) {
     boxes,
 
     unpacked: result.failed.map(
-      (item) => item.itemCode
+      (item) => item.item.itemCode
     ),
 
     algorithmUs: result.algorithmUs ?? null,
@@ -182,36 +183,27 @@ export function normaliseSolverResponse(result, order) {
  */
 export async function requestPacking(order) {
   const startedAt = Date.now();
-
   const request = buildSolverRequest(order);
 
-  if (config.useMockSolver) {
-    const result = mockPack(request);
+  try {
+    console.log("[solver] REQUEST:");
+    console.dir(request, { depth: null });
+
+    const result = await solve({
+      algorithm: SolveAlgorithm.ExtremePoint,
+      options: {},
+      ...request
+    });
+
+    console.log("[solver] RAW RESPONSE:");
+    console.dir(result, { depth: null });
 
     return {
-      ...result,
+      ...normaliseSolverResponse(result, order),
       solverMs: Date.now() - startedAt,
-      source: "mock",
+      source: "bionic-solver",
     };
-  }
-
- try {
-  const { solve } = await import("@bionic/solver");
-
-  console.log("[solver] REQUEST:");
-  console.dir(request, { depth: null });
-
-  const result = await solve(request);
-
-  console.log("[solver] RAW RESPONSE:");
-  console.dir(result, { depth: null });
-
-  return {
-    ...normaliseSolverResponse(result, order),
-    solverMs: Date.now() - startedAt,
-    source: "bionic-solver",
-  };
-} catch (err) {
+  } catch (err) {
     throw new Error(`FitSolver failed: ${err.message}`);
   }
 }
