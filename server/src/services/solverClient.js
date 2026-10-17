@@ -1,11 +1,12 @@
+
 import { config } from "../config.js";
 import { mockPack } from "./mockSolver.js";
 
 /**
- * Convert the Portal's order items into the format expected by FitSolver.
+ * Expand order items into the format expected by FitSolver.
  *
- * The Solver currently has no quantity field, so quantity > 1 is expanded
- * into multiple physical item records.
+ * FitSolver does not currently accept a quantity field.
+ * Each physical item is therefore sent separately.
  */
 export function expandItems(items) {
   const expanded = [];
@@ -39,6 +40,8 @@ export function expandItems(items) {
 
 /**
  * Build the request expected by @bionic/solver.
+ *
+ * Preserve the Portal's width, length and depth values.
  */
 export function buildSolverRequest(order) {
   return {
@@ -72,24 +75,23 @@ export function buildSolverRequest(order) {
 }
 
 /**
- * Convert FitSolver's result into the stable result format used by FitPortal
- * and later consumed by FitVisualizer.
- */
-/*
- * Axis convention, confirmed against the solver binary.
+ * Convert FitSolver's response into the format expected
+ * by the embedded FitVisualizer component.
  *
- * Solver returns width/length/depth and positions x/y/z. Packing 60 items of
- * 10 x 40 x 20 into a carton showed which field belongs to which axis:
+ * FitSolver coordinate convention:
  *
- *   x steps by 10  -> x = width
- *   y steps by 20  -> y = depth
- *   z steps by 40  -> z = length
+ *   X = width
+ *   Y = depth
+ *   Z = length
  *
- * FitVisualizer renders with y up, so the height of anything is its `depth`.
- * Mapping h from `length` made items render at the wrong size for the space
- * they were given — each one overlapping the next, and boxes poking through
- * the carton. FitVisualizer's own adapter already maps h from depth; this
- * brings Portal in line with it.
+ * FitVisualizer coordinate convention:
+ *
+ *   w = width
+ *   h = depth
+ *   d = length
+ *
+ * Placement coordinates and dimensions are preserved.
+ * We do not invent rotation information.
  */
 export function normaliseSolverResponse(result, order) {
   if (!result || typeof result !== "object") {
@@ -97,65 +99,182 @@ export function normaliseSolverResponse(result, order) {
   }
 
   if (!Array.isArray(result.results)) {
-    throw new Error("Solver response is missing the results array.");
+    throw new Error(
+      "Solver response is missing the results array."
+    );
   }
 
   if (!Array.isArray(result.failed)) {
-    throw new Error("Solver response is missing the failed array.");
+    throw new Error(
+      "Solver response is missing the failed array."
+    );
   }
 
   const containersByReference = new Map(
-    order.containers.map((box) => [box.reference, box])
+    order.containers.map((box) => [
+      box.reference,
+      box,
+    ])
   );
 
-  const boxes = result.results.map((resultBox, boxIndex) => {
-    const container =
-      containersByReference.get(resultBox.boxReference);
+  const usedBoxIds = new Set();
 
-    return {
-      boxId: resultBox.boxReference,
+  const boxes = result.results.map(
+    (resultBox, boxIndex) => {
+      const reference =
+        resultBox.boxReference ??
+        resultBox.box_reference ??
+        `box-${boxIndex + 1}`;
 
-      dimensions: container
-        ? {
-            w: container.width,
-            h: container.depth,
-            d: container.length,
-          }
-        : null,
+      const container =
+        containersByReference.get(reference);
 
-      totalWeight: resultBox.totalWeight ?? null,
+      // Prefer carton dimensions returned by FitSolver.
+      // Fall back to the original order configuration.
+      const width =
+        resultBox.width ?? container?.width;
 
-      utilization: resultBox.utilization ?? null,
+      const length =
+        resultBox.length ?? container?.length;
 
-      items: (resultBox.placements || []).map(
-        (placement, placementIndex) => ({
-          itemId:
-            placement.itemReference ||
-            placement.itemCode ||
-            `placement-${boxIndex + 1}-${placementIndex + 1}`,
+      const depth =
+        resultBox.depth ?? container?.depth;
 
-          itemCode: placement.itemCode ?? null,
+      if (
+        ![width, length, depth].every(
+          (value) =>
+            typeof value === "number" &&
+            Number.isFinite(value) &&
+            value > 0
+        )
+      ) {
+        throw new Error(
+          `Missing or invalid carton dimensions for ${reference}.`
+        );
+      }
+
+      // Ensure each packed carton has a unique ID.
+      let boxId = reference;
+      let suffix = 2;
+
+      while (usedBoxIds.has(boxId)) {
+        boxId = `${reference}-${suffix++}`;
+      }
+
+      usedBoxIds.add(boxId);
+
+      const dimensions = {
+        w: width,
+        h: depth,
+        d: length,
+      };
+
+      const items = (
+        resultBox.placements ?? []
+      ).map((placement, placementIndex) => {
+        const itemId =
+          placement.itemCode ??
+          placement.item_code ??
+          placement.itemReference ??
+          placement.item_reference ??
+          `placement-${boxIndex + 1}-${placementIndex + 1}`;
+
+        // Preserve Solver placement coordinates.
+        const position = {
+          x: placement.x,
+          y: placement.y,
+          z: placement.z,
+        };
+
+        // Preserve actual placed dimensions.
+        // These may differ from original dimensions
+        // if the Solver rotated the item.
+        const itemDimensions = {
+          w: placement.width,
+          h: placement.depth,
+          d: placement.length,
+        };
+
+        const values = [
+          position.x,
+          position.y,
+          position.z,
+          itemDimensions.w,
+          itemDimensions.h,
+          itemDimensions.d,
+        ];
+
+        if (!values.every(Number.isFinite)) {
+          throw new Error(
+            `Invalid placement data for ${itemId}.`
+          );
+        }
+
+        // Diagnostic boundary validation.
+        // Does not modify Solver coordinates.
+        const tolerance = 0.001;
+
+        const outside =
+          position.x < -tolerance ||
+          position.y < -tolerance ||
+          position.z < -tolerance ||
+          position.x + itemDimensions.w >
+            dimensions.w + tolerance ||
+          position.y + itemDimensions.h >
+            dimensions.h + tolerance ||
+          position.z + itemDimensions.d >
+            dimensions.d + tolerance;
+
+        if (outside) {
+          console.warn(
+            "[solver] Placement outside carton:",
+            {
+              boxReference: reference,
+              itemId,
+              position,
+              itemDimensions,
+              cartonDimensions: dimensions,
+            }
+          );
+        }
+
+        return {
+          itemId,
+
+          itemCode:
+            placement.itemCode ??
+            placement.item_code ??
+            null,
 
           itemReference:
-            placement.itemReference ?? null,
+            placement.itemReference ??
+            placement.item_reference ??
+            null,
 
-          position: {
-            x: placement.x,
-            y: placement.y,
-            z: placement.z,
-          },
+          position,
 
-          rotation: "XYZ",
+          // No hardcoded rotation.
+          // FitSolver already returns placed dimensions.
+          dimensions: itemDimensions,
+        };
+      });
 
-          dimensions: {
-            w: placement.width,
-            h: placement.depth,
-            d: placement.length,
-          },
-        })
-      ),
-    };
-  });
+      return {
+        boxId,
+        dimensions,
+
+        totalWeight:
+          resultBox.totalWeight ??
+          resultBox.total_weight ??
+          null,
+
+        utilization:
+          resultBox.utilization ?? null,
+
+        items,
+      };
+    }
+  );
 
   return {
     status: "success",
@@ -167,18 +286,31 @@ export function normaliseSolverResponse(result, order) {
 
     boxes,
 
-    unpacked: result.failed.map(
-      (item) => item.itemCode
-    ),
+    unpacked: result.failed
+      .map((item) =>
+        typeof item === "string"
+          ? item
+          : item.itemCode ??
+            item.item_code ??
+            null
+      )
+      .filter(Boolean),
 
-    algorithmUs: result.algorithmUs ?? null,
-    serverUs: result.serverUs ?? null,
+    algorithmUs:
+      result.algorithmUs ?? null,
+
+    serverUs:
+      result.serverUs ?? null,
   };
 }
+
 /**
  * Send an order to either:
  * - the temporary mock Solver, or
  * - the real @bionic/solver package.
+ *
+ * The original FitSolver response is preserved
+ * for future raw-response PDF downloads.
  */
 export async function requestPacking(order) {
   const startedAt = Date.now();
@@ -195,23 +327,42 @@ export async function requestPacking(order) {
     };
   }
 
- try {
-  const { solve } = await import("@bionic/solver");
+  try {
+    const { solve } = await import(
+      "@bionic/solver"
+    );
 
-  console.log("[solver] REQUEST:");
-  console.dir(request, { depth: null });
+    console.log("[solver] REQUEST:");
+    console.dir(request, { depth: null });
 
-  const result = await solve(request);
+    const result = await solve(request);
 
-  console.log("[solver] RAW RESPONSE:");
-  console.dir(result, { depth: null });
+    console.log("[solver] RAW RESPONSE:");
+    console.dir(result, { depth: null });
 
-  return {
-    ...normaliseSolverResponse(result, order),
-    solverMs: Date.now() - startedAt,
-    source: "bionic-solver",
-  };
-} catch (err) {
-    throw new Error(`FitSolver failed: ${err.message}`);
+    const normalisedResult =
+      normaliseSolverResponse(result, order);
+
+    console.log(
+      "[solver] VISUALIZER RESPONSE:"
+    );
+    console.dir(normalisedResult, {
+      depth: null,
+    });
+
+    return {
+      ...normalisedResult,
+
+      // Preserve the original FitSolver output
+      // without modifying its properties or values.
+      rawSolverResponse: result,
+
+      solverMs: Date.now() - startedAt,
+      source: "bionic-solver",
+    };
+  } catch (err) {
+    throw new Error(
+      `FitSolver failed: ${err.message}`
+    );
   }
 }

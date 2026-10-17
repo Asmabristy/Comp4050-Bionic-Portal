@@ -96,7 +96,7 @@ export async function referenceTaken(reference, exceptId) {
   return Boolean(data);
 }
 
-/** Patch a carton. `patch` uses API names (maxWeight, maximumBoxes, ...). */
+/** Patch a carton. patch uses API names (maxWeight, maximumBoxes, ...). */
 export async function update(id, patch) {
   if (!isUuid(id)) return null;
 

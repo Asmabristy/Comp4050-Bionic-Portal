@@ -333,6 +333,11 @@ ordersRouter.post(
           message: solved.message || "",
           boxes: solved.boxes || [],
           unpacked: solved.unpacked || [],
+
+          // Preserve the original FitSolver response.
+          // Used for the raw Solver PDF report.
+          rawSolverResponse: solved.rawSolverResponse ?? null,
+
           solvedAt: new Date().toISOString(),
           solverMs: solved.solverMs || 0,
           source: solved.source || "solver",

@@ -1,5 +1,7 @@
+
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { jsPDF } from "jspdf";
 import { api } from "../api.js";
 import FitVisualiser from "@bionic/visualiser";
 import { Icon } from "../components/Icon.jsx";
@@ -32,7 +34,6 @@ export function OrderDetail() {
 
   useEffect(() => {
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // A different order means the open 3D view no longer matches what's on screen.
@@ -64,6 +65,86 @@ export function OrderDetail() {
     }
   };
 
+  /**
+   * Download the complete original FitSolver response as a PDF.
+   *
+   * The PDF contains only the stored raw Solver JSON.
+   * No summarisation, normalisation, or calculation is applied.
+   *
+   * Line wrapping and pagination affect presentation only.
+   */
+  const downloadRawSolverPDF = () => {
+    const rawResponse = order?.result?.rawSolverResponse;
+
+    if (rawResponse == null) {
+      setError(
+        "No raw FitSolver response is available for this order."
+      );
+      return;
+    }
+
+    try {
+      setError("");
+
+      const rawJSON = JSON.stringify(rawResponse, null, 2);
+
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      const margin = 12;
+      const fontSize = 8;
+      const lineHeight = 4;
+      const maxWidth = pageWidth - margin * 2;
+
+      pdf.setFont("courier", "normal");
+      pdf.setFontSize(fontSize);
+
+      let y = margin;
+
+      const lines = rawJSON.split("\n");
+
+      for (const line of lines) {
+        const wrappedLines = pdf.splitTextToSize(
+          line || " ",
+          maxWidth
+        );
+
+        for (const wrappedLine of wrappedLines) {
+          if (y + lineHeight > pageHeight - margin) {
+            pdf.addPage();
+            y = margin;
+          }
+
+          pdf.text(wrappedLine, margin, y);
+          y += lineHeight;
+        }
+      }
+
+      const safeReference = String(
+        order.reference || "order"
+      ).replace(/[^a-zA-Z0-9_-]/g, "_");
+
+      pdf.save(
+        `${safeReference}-raw-solver-response.pdf`
+      );
+    } catch (err) {
+      console.error(
+        "PDF generation failed:",
+        err
+      );
+
+      setError(
+        "Could not generate the raw Solver PDF."
+      );
+    }
+  };
+
   if (!order) {
     return (
       <>
@@ -74,7 +155,9 @@ export function OrderDetail() {
         )}
 
         <div className="emptystate">
-          <p className="emptystate__text">Reading the order…</p>
+          <p className="emptystate__text">
+            Reading the order…
+          </p>
         </div>
       </>
     );
@@ -113,17 +196,18 @@ export function OrderDetail() {
    * Calculate overall volume utilization using
    * the same box information used by the 2D preview.
    */
- const utilization =
-  result?.boxes?.length
-    ? result.boxes.reduce(
-        (total, box) =>
-          total +
-          (typeof box.utilization === "number"
-            ? box.utilization
-            : 0),
-        0
-      ) / result.boxes.length
-    : null;
+  const utilization =
+    result?.boxes?.length
+      ? result.boxes.reduce(
+          (total, box) =>
+            total +
+            (typeof box.utilization === "number"
+              ? box.utilization
+              : 0),
+          0
+        ) / result.boxes.length
+      : null;
+
   /*
    * Some Solver result formats expose totalWeight
    * on each box. If available, display it.
@@ -142,10 +226,13 @@ export function OrderDetail() {
       : null;
 
   const utilizationPercent =
-    utilization !== null ? Math.round(utilization * 100) : null;
+    utilization !== null
+      ? Math.round(utilization * 100)
+      : null;
 
   const totalUnits = order.items.reduce(
-    (total, item) => total + (Number(item.quantity) || 1),
+    (total, item) =>
+      total + (Number(item.quantity) || 1),
     0
   );
 
@@ -161,14 +248,18 @@ export function OrderDetail() {
       </button>
 
       {error && (
-        <div className="notice notice--error">{error}</div>
+        <div className="notice notice--error">
+          {error}
+        </div>
       )}
 
       {result?.source === "mock" && (
         <div className="notice notice--hivis">
           Packed by the built-in stand-in solver, not FitSolver. Set{" "}
-          <span className="mono">USE_MOCK_SOLVER=false</span> once the Solver
-          package is ready.
+          <span className="mono">
+            USE_MOCK_SOLVER=false
+          </span>{" "}
+          once the Solver package is ready.
         </div>
       )}
 
@@ -179,34 +270,62 @@ export function OrderDetail() {
             {
               label: "Status",
               value: (
-                <span className={`tag tag--${order.status}`}>
+                <span
+                  className={`tag tag--${order.status}`}
+                >
                   {order.status}
                 </span>
               ),
             },
-            { label: "Items", value: order.items.length },
-            { label: "Units", value: totalUnits },
+            {
+              label: "Items",
+              value: order.items.length,
+            },
+            {
+              label: "Units",
+              value: totalUnits,
+            },
             {
               label: "Cartons offered",
               value:
                 order.containers
-                  .map((container) => container.reference)
+                  .map(
+                    (container) =>
+                      container.reference
+                  )
                   .join(" · ") || "—",
             },
             {
               label: "Raised",
-              value: order.createdAt ? plateDate(order.createdAt) : "—",
+              value: order.createdAt
+                ? plateDate(order.createdAt)
+                : "—",
             },
           ]}
           actions={
             <>
               {canRunSolver && (
-                <button type="button" onClick={pack} disabled={busy}>
+                <button
+                  type="button"
+                  onClick={pack}
+                  disabled={busy}
+                >
                   {busy
                     ? "Packing…"
                     : result
                       ? "Re-pack"
                       : "Pack this order"}
+                </button>
+              )}
+
+              {result?.rawSolverResponse != null && (
+                <button
+                  type="button"
+                  className="btn-ghost btn-small"
+                  onClick={downloadRawSolverPDF}
+                  disabled={busy}
+                >
+                  Download Solver PDF
                 </button>
               )}
 
@@ -228,14 +347,17 @@ export function OrderDetail() {
         {result ? (
           <div className="loadplan">
             <div className="loadplan__head">
-              <h2 className="loadplan__title">Load plan</h2>
+              <h2 className="loadplan__title">
+                Load plan
+              </h2>
 
               <p className="loadplan__note">
                 Computed by{" "}
                 {result.source === "mock"
                   ? "the stand-in solver"
                   : "Bionic FitSolver"}
-                {result.solverMs != null && ` in ${result.solverMs} ms`}
+                {result.solverMs != null &&
+                  ` in ${result.solverMs} ms`}
               </p>
             </div>
 
@@ -244,18 +366,30 @@ export function OrderDetail() {
               ratio={
                 utilizationPercent !== null
                   ? `${cartonsUsed} ${
-                      cartonsUsed === 1 ? "carton" : "cartons"
+                      cartonsUsed === 1
+                        ? "carton"
+                        : "cartons"
                     }`
                   : "Not measured"
               }
-              percent={utilizationPercent ?? 0}
-              value={utilizationPercent ?? "—"}
-              unit={utilizationPercent !== null ? "%" : ""}
+              percent={
+                utilizationPercent ?? 0
+              }
+              value={
+                utilizationPercent ?? "—"
+              }
+              unit={
+                utilizationPercent !== null
+                  ? "%"
+                  : ""
+              }
               short={unpackedItems > 0}
               deficit={
                 unpackedItems > 0
                   ? `Not packed — ${unpackedItems} ${
-                      unpackedItems === 1 ? "item" : "items"
+                      unpackedItems === 1
+                        ? "item"
+                        : "items"
                     }`
                   : "Everything fitted"
               }
@@ -274,21 +408,35 @@ export function OrderDetail() {
 
               <div className="loadplan__figure">
                 <span>Not packed</span>
-                <strong className={unpackedItems > 0 ? "is-short" : ""}>
+                <strong
+                  className={
+                    unpackedItems > 0
+                      ? "is-short"
+                      : ""
+                  }
+                >
                   {unpackedItems}
                 </strong>
               </div>
 
               <div className="loadplan__figure">
                 <span>Cartons selected</span>
-                <strong style={{ fontSize: "1.0625rem" }}>
+                <strong
+                  style={{
+                    fontSize: "1.0625rem",
+                  }}
+                >
                   {selectedCartons}
                 </strong>
               </div>
 
               <div className="loadplan__figure">
                 <span>Total weight</span>
-                <strong style={{ fontSize: "1.0625rem" }}>
+                <strong
+                  style={{
+                    fontSize: "1.0625rem",
+                  }}
+                >
                   {totalWeight !== null
                     ? `${totalWeight.toFixed(2)} kg`
                     : "—"}
@@ -302,7 +450,9 @@ export function OrderDetail() {
               <Icon name="cube" size={18} />
             </div>
 
-            <p className="emptystate__title">Not packed yet</p>
+            <p className="emptystate__title">
+              Not packed yet
+            </p>
 
             <p className="emptystate__text">
               {canRunSolver
@@ -315,9 +465,15 @@ export function OrderDetail() {
         {result?.message && (
           <div
             className={`notice ${
-              result.status === "error" ? "notice--error" : ""
+              result.status === "error"
+                ? "notice--error"
+                : ""
             }`}
-            style={{ border: 0, borderTop: "1px solid var(--rule)" }}
+            style={{
+              border: 0,
+              borderTop:
+                "1px solid var(--rule)",
+            }}
           >
             {result.message}
           </div>
@@ -332,7 +488,6 @@ export function OrderDetail() {
         <Plate>
           <SectionHead
             title="Three-dimensional inspection"
-            note="The same result, rendered by FitVisualizer"
           />
 
           <div className="visualizer">
@@ -348,16 +503,23 @@ export function OrderDetail() {
 
             <button
               type="button"
-              onClick={() => setShow3D((open) => !open)}
+              onClick={() =>
+                setShow3D((open) => !open)
+              }
               aria-expanded={show3D}
               aria-controls="fit-visualiser"
             >
-              {show3D ? "Hide 3D" : "View in 3D"}
+              {show3D
+                ? "Hide 3D"
+                : "View in 3D"}
             </button>
           </div>
 
           {show3D && (
-            <div className="visualizer-stage" id="fit-visualiser">
+            <div
+              className="visualizer-stage"
+              id="fit-visualiser"
+            >
               <FitVisualiser result={result} />
             </div>
           )}
@@ -395,18 +557,30 @@ export function OrderDetail() {
             </thead>
 
             <tbody>
-              {order.items.map((item, index) => (
-                <tr key={`${item.itemCode}-${index}`}>
-                  <td className="mono">{item.itemCode}</td>
-                  <td>{item.itemReference}</td>
-                  <td>{item.width}</td>
-                  <td>{item.length}</td>
-                  <td>{item.depth}</td>
-                  <td>{item.weight}</td>
-                  <td>{item.quantity ?? 1}</td>
-                  <td className="mono">{item.boxGroup || "—"}</td>
-                </tr>
-              ))}
+              {order.items.map(
+                (item, index) => (
+                  <tr
+                    key={`${item.itemCode}-${index}`}
+                  >
+                    <td className="mono">
+                      {item.itemCode}
+                    </td>
+                    <td>
+                      {item.itemReference}
+                    </td>
+                    <td>{item.width}</td>
+                    <td>{item.length}</td>
+                    <td>{item.depth}</td>
+                    <td>{item.weight}</td>
+                    <td>
+                      {item.quantity ?? 1}
+                    </td>
+                    <td className="mono">
+                      {item.boxGroup || "—"}
+                    </td>
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
