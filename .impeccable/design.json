@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-03T00:00:00.000Z",
+  "title": "Design System: Bionic Portal",
+  "extensions": {
+    "colorMeta": {
+      "field": {
+        "role": "primary",
+        "displayName": "Thomax Deep Blue",
+        "tonalRamp": [
+          "#011C6E",
+          "#012DAE",
+          "#2A51C4",
+          "#9FB4EC",
+          "#F2F6FF"
+        ]
+      },
+      "signal": {
+        "role": "accent",
+        "displayName": "Thomax Light Blue",
+        "tonalRamp": [
+          "#03769E",
+          "#049DCE",
+          "#2FB4E2"
+        ]
+      },
+      "stock": {
+        "role": "neutral",
+        "displayName": "Plate White",
+        "tonalRamp": [
+          "#E6EBF4",
+          "#EDF1F8",
+          "#F4F7FC",
+          "#FFFFFF"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "tonalRamp": [
+          "#10141C",
+          "#454D5C",
+          "#5C657A",
+          "#C9D2E2"
+        ]
+      },
+      "status-packed": {
+        "role": "support",
+        "displayName": "Packed (field blue)"
+      },
+      "status-packing": {
+        "role": "support",
+        "displayName": "Packing (deep sky)"
+      },
+      "status-failed": {
+        "role": "support",
+        "displayName": "Oxide Red"
+      },
+      "status-draft": {
+        "role": "support",
+        "displayName": "Draft Graphite"
+      }
+    },
+    "typographyMeta": {
+      "plate-name": {
+        "displayName": "Plate Name",
+        "purpose": "The page name in a title block. The only large type in the system."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "A count in a specification strip. Tabular, always."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Field labels, column heads, legends. Archivo Narrow, caps, tracked 0.14em."
+      },
+      "section": {
+        "displayName": "Section",
+        "purpose": "A ruled section title inside a plate."
+      },
+      "reference": {
+        "displayName": "Reference",
+        "purpose": "Order references, item codes, emails. Tracked narrow caps standing in for a monospace the system refuses."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease-draw",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Exponential ease-out. The only easing in the system."
+      },
+      {
+        "name": "measure-draw",
+        "value": "520ms",
+        "purpose": "The one authored moment: a measure's fill and annotation sweep from the left on load and on every data change. Parked at its final value under prefers-reduced-motion."
+      },
+      {
+        "name": "state",
+        "value": "120ms",
+        "purpose": "Ink and rule-weight changes on hover, focus and active. Nothing else transitions."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "lg",
+        "value": "1080px"
+      },
+      {
+        "name": "md",
+        "value": "860px"
+      },
+      {
+        "name": "sm",
+        "value": "600px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The action colour, Thomax light blue. Used only where something can actually be done; disabled loses the colour entirely.",
+      "html": "<button class=\"ds-btn\">Raise order</button>",
+      "css": ".ds-btn { display:inline-flex; align-items:center; gap:8px; background:#049DCE; color:#10141C; border:1px solid #10141C; border-radius:0; padding:12px 24px; font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.75rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase; cursor:pointer; transition:background-color 120ms cubic-bezier(.16,1,.3,1); } .ds-btn:hover { background:#2FB4E2; } .ds-btn:disabled { background:#F4F7FC; color:#5C657A; border-color:#C9D2E2; cursor:not-allowed; } .ds-btn:focus-visible { outline:2px solid #049DCE; outline-offset:2px; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "A secondary action. Ink outline that inverts on hover; never takes the action colour.",
+      "html": "<button class=\"ds-btn-ghost\">Save as draft</button>",
+      "css": ".ds-btn-ghost { background:transparent; color:#10141C; border:1px solid #10141C; border-radius:0; padding:12px 24px; font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.75rem; font-weight:700; letter-spacing:.13em; text-transform:uppercase; cursor:pointer; transition:background-color 120ms cubic-bezier(.16,1,.3,1),color 120ms cubic-bezier(.16,1,.3,1); } .ds-btn-ghost:hover { background:#10141C; color:#FFFFFF; }"
+    },
+    {
+      "name": "Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Square field on plate stock. Focus takes an ink border plus a light-blue outline.",
+      "html": "<input class=\"ds-input\" placeholder=\"PO-40128\" />",
+      "css": ".ds-input { background:#FFFFFF; color:#10141C; border:1px solid #5C657A; border-radius:0; padding:8px 12px; font-family:Archivo,Arial,sans-serif; font-size:.8125rem; font-variant-numeric:tabular-nums; } .ds-input::placeholder { color:#5C657A; font-family:'Archivo Narrow',Archivo,Arial,sans-serif; letter-spacing:.04em; } .ds-input:hover { border-color:#10141C; } .ds-input:focus { border-color:#10141C; outline:2px solid #049DCE; outline-offset:1px; }"
+    },
+    {
+      "name": "Navigation Rail",
+      "kind": "nav",
+      "refersTo": "navcell",
+      "description": "A full-height deep-blue rail down the left. The active cell inverts to plate white, so the rail shows which sheet is open. No accent stripe.",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-navcell ds-navcell--active\">Dashboard</a><a class=\"ds-navcell\">Orders</a><a class=\"ds-navcell\">Cartons</a></nav>",
+      "css": ".ds-rail { display:flex; flex-direction:column; width:240px; background:#012DAE; } .ds-navcell { display:flex; align-items:center; gap:12px; padding:16px 24px; border-bottom:1px solid #2A51C4; color:#9FB4EC; font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.75rem; font-weight:600; letter-spacing:.13em; text-transform:uppercase; } .ds-navcell:hover { color:#F2F6FF; background:#011C6E; } .ds-navcell--active { color:#10141C; background:#FFFFFF; }"
+    },
+    {
+      "name": "Plate",
+      "kind": "card",
+      "refersTo": "plate",
+      "description": "The only container in the system. A 2px ink edge on stock, with a ruled head and any number of ruled sections. Never nested, never shadowed, never rounded.",
+      "html": "<section class=\"ds-plate\"><div class=\"ds-plate-head\"><h1 class=\"ds-plate-name\">Orders</h1><dl class=\"ds-fields\"><div><dt>Records</dt><dd>3</dd></div><div><dt>Date</dt><dd>03 OCT 2026</dd></div></dl></div><div class=\"ds-plate-body\">Content</div></section>",
+      "css": ".ds-plate { background:#FFFFFF; border:2px solid #10141C; } .ds-plate-head { border-bottom:2px solid #10141C; padding:24px 24px 0; } .ds-plate-name { margin:0; font-family:Archivo,Arial,sans-serif; font-size:1.75rem; font-weight:600; letter-spacing:-.02em; line-height:1.05; } .ds-fields { display:flex; margin:16px 0 0; border-top:1px solid #C9D2E2; } .ds-fields > div { padding:12px 24px 12px 0; margin-right:24px; border-right:1px solid #C9D2E2; } .ds-fields > div:last-child { border-right:0; margin-right:0; padding-right:0; } .ds-fields dt { margin:0 0 2px; font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.6875rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#454D5C; } .ds-fields dd { margin:0; font-size:.875rem; font-weight:600; font-variant-numeric:tabular-nums; } .ds-plate-body { padding:24px; }"
+    },
+    {
+      "name": "Measure",
+      "kind": "custom",
+      "refersTo": "measure",
+      "description": "The signature component. A measured value drawn as a drafting dimension: centre rule, witness ticks, fill band, and the figure annotated where the measurement ends. The deficit is named on its own line.",
+      "html": "<div class=\"ds-measure\"><div class=\"ds-measure-head\"><span class=\"ds-measure-label\">Queue packed against orders raised</span><span class=\"ds-measure-ratio\">2 / 3</span></div><div class=\"ds-measure-track\"><div class=\"ds-measure-fill\" style=\"width:67%\"></div><span class=\"ds-tick ds-tick--a\"></span><span class=\"ds-tick ds-tick--b\"></span><span class=\"ds-measure-value\" style=\"left:67%\">67<span class=\"ds-measure-unit\">%</span></span></div><p class=\"ds-measure-deficit\">Waiting \u2014 1 order</p></div>",
+      "css": ".ds-measure { display:flex; flex-direction:column; gap:12px; font-family:Archivo,Arial,sans-serif; } .ds-measure-head { display:flex; justify-content:space-between; align-items:baseline; } .ds-measure-label,.ds-measure-deficit { font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.6875rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase; color:#454D5C; } .ds-measure-ratio { font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.8125rem; font-weight:600; letter-spacing:.06em; font-variant-numeric:tabular-nums; } .ds-measure-track { position:relative; height:30px; } .ds-measure-track::before { content:''; position:absolute; left:0; right:0; top:50%; height:1px; background:#10141C; } .ds-tick { position:absolute; top:0; bottom:0; width:1px; background:#10141C; } .ds-tick--a { left:0; } .ds-tick--b { right:0; } .ds-measure-fill { position:absolute; left:0; top:5px; bottom:5px; background:#012DAE; transform-origin:left center; animation:ds-draw 520ms cubic-bezier(.16,1,.3,1) both; } .ds-measure-value { position:absolute; top:50%; transform:translate(-100%,-50%); padding-right:12px; color:#F2F6FF; font-size:1.125rem; font-weight:700; font-variant-numeric:tabular-nums; } .ds-measure-unit { font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.6875rem; font-weight:600; letter-spacing:.1em; margin-left:2px; color:#9FB4EC; } .ds-measure-deficit { display:flex; align-items:center; gap:8px; margin:0; padding-top:8px; border-top:1px solid #C9D2E2; color:#B3261E; } .ds-measure-deficit::before { content:''; width:18px; border-top:2px solid currentColor; } @keyframes ds-draw { from { transform:scaleX(0); } }"
+    },
+    {
+      "name": "Status Mark",
+      "kind": "chip",
+      "refersTo": "state",
+      "description": "Status as a mark in a fixed cell, never a pill. Hollow for draft, hatched for packing, filled for packed and failed.",
+      "html": "<span class=\"ds-state ds-state--packed\">packed</span> <span class=\"ds-state ds-state--draft\">draft</span> <span class=\"ds-state ds-state--packing\">packing</span> <span class=\"ds-state ds-state--failed\">failed</span>",
+      "css": ".ds-state { display:inline-flex; align-items:center; gap:8px; font-family:'Archivo Narrow',Archivo,Arial,sans-serif; font-size:.6875rem; font-weight:600; letter-spacing:.14em; text-transform:uppercase; } .ds-state::before { content:''; width:10px; height:10px; border:1px solid currentColor; background:currentColor; } .ds-state--draft { color:#5C657A; } .ds-state--draft::before { background:transparent; } .ds-state--packing { color:#03769E; } .ds-state--packing::before { background:repeating-linear-gradient(45deg,currentColor 0 2px,transparent 2px 4px); } .ds-state--packed { color:#012DAE; } .ds-state--failed { color:#B3261E; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Standards Sheet",
+    "overview": "Bionic Portal is drawn as an industrial parts-standard sheet. Every carton, item and order is a specified part with a number, a dimension table and a line drawing, and the page is the sheet those things are printed on. It refuses what this category always ships: white rounded cards on tinted grey, one blue accent, a stat tile per metric, status as a coloured pill.\n\nThe content is numbers in millimetres, read by two people handing work between them and demonstrated on a projector in a bright room. So the system is light, flat and ruled. Nothing has a radius, a shadow or a gradient; separation is done entirely with rule weight and stock tint, which puts the whole page's weight on alignment.\n\nThe palette is Thomax's own, sampled from their logo and pinned: deep blue #012DAE, light blue #049DCE, white. Deep blue is a field that owns whole regions \u2014 the full-height navigation rail down the left, the load plan, the sign-in plate. Light blue is the action colour and appears only where something can be done, so scanning a page for light blue is the same as scanning it for what you can press. The sheet you have open is pulled out of the rail: the active cell inverts to plate white.",
+    "keyCharacteristics": [
+      "Thomax's own two blues on white, sampled from their logo and pinned",
+      "A full-height deep-blue navigation rail; the open sheet inverts out of it",
+      "Light blue strictly as the action colour; disabled loses it entirely",
+      "Zero radius, zero shadow, zero gradient \u2014 rule weight and stock tint are the only dividers",
+      "Archivo and Archivo Narrow only; no monospace, tabular figures everywhere",
+      "Every measured value drawn as a drafting dimension with witness ticks",
+      "Boxes drawn as 30-degree axonometric wireframes with a labelled dimension line per axis"
+    ],
+    "rules": [
+      {
+        "name": "The light-blue rule",
+        "body": "Light blue marks what can be done and nothing else. A disabled control drops to stock-wash on rule with ink-3 text. If an element is light blue and cannot be clicked, it is a bug.",
+        "section": "colors"
+      },
+      {
+        "name": "Status never borrows the action colour",
+        "body": "Status lives in its own desaturated ink family and is carried by a mark in a fixed cell, not by a tint on a pill.",
+        "section": "colors"
+      },
+      {
+        "name": "Colour owns regions, not edges",
+        "body": "A field colour fills a whole topbar or a whole plate. There are no coloured side stripes and no tinted card borders.",
+        "section": "colors"
+      },
+      {
+        "name": "Labels are narrow, tracked and capital",
+        "body": "Field labels, column heads, references and status words are Archivo Narrow uppercase. Content is not. A label set in sentence case stops reading as a field name.",
+        "section": "typography"
+      },
+      {
+        "name": "A page name carries no label above it",
+        "body": "The title block states the name first, then its field/value pairs underneath. There are no eyebrows in this system.",
+        "section": "typography"
+      },
+      {
+        "name": "Depth is rule weight",
+        "body": "2px ink closes a plate and its head; 1px ink divides ruled sections; 1px rule divides rows and cells. No shadow, no blur, no translucency.",
+        "section": "elevation"
+      },
+      {
+        "name": "Name the deficit",
+        "body": "A measured value states what did not fit on its own line, with a leader rule. Nothing short is allowed to hide inside a percentage.",
+        "section": "elevation"
+      },
+      {
+        "name": "The open sheet leaves the rail",
+        "body": "The active navigation cell inverts to plate white with ink text. No accent stripe down its edge \u2014 a coloured border on one side of a list item is the side-tab tell and belongs to no system.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do give every page a plate and a title block carrying real data",
+      "Do set every field label, column head and reference in Archivo Narrow caps, tracked, and every figure in tabular numerals",
+      "Do reserve light blue for things that can be done, and take it away when they cannot",
+      "Do draw a measured value as a dimension, and name its deficit on its own line",
+      "Do let a field colour own a whole region when a region deserves the weight",
+      "Do theme the browser's own surfaces: selection, caret, scrollbars, focus rings"
+    ],
+    "donts": [
+      "Don't add a radius, a shadow, a gradient or a translucent layer",
+      "Don't put a label above a heading",
+      "Don't use a status colour where an action colour belongs, or the reverse",
+      "Don't use monospace to signal 'technical'; use tabular figures",
+      "Don't put a Unicode glyph where an icon belongs",
+      "Don't let a register squeeze a column away; let it scroll",
+      "Don't mark an active nav item with a coloured edge stripe; invert it instead"
+    ]
+  }
+}

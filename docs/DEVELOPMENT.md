@@ -3,7 +3,7 @@
 The Portal subsystem for **Project Perfect Fit** (COMP4050, Division Bionic).
 
 FitPortal is the hub of the division. It handles users and sign-in, takes orders from
-operational staff, stores everything in MongoDB, calls **FitSolver** to compute the
+operational staff, stores everything in Supabase, calls **FitSolver** to compute the
 packing, and serves the result to **FitVisualizer** for 3D rendering.
 
 ```
@@ -28,7 +28,7 @@ packing, and serves the result to **FitVisualizer** for 3D rendering.
 | Layer     | Choice                          |
 | --------- | ------------------------------- |
 | API       | Node.js + Express               |
-| Database  | MongoDB via Mongoose            |
+| Database  | Supabase (Postgres)             |
 | Auth      | JWT bearer tokens, bcrypt hashes |
 | Front end | React 18 + Vite + React Router  |
 
@@ -38,14 +38,15 @@ packing, and serves the result to **FitVisualizer** for 3D rendering.
 
 Short version in [`RUNNING.md`](RUNNING.md).
 
-You need Node 18+ and a MongoDB instance (local, or a free Atlas cluster).
+You need Node 20+ and a Supabase project. See [SUPABASE.md](SUPABASE.md) for
+the one-time setup: run the schema, then copy your keys into `server/.env`.
 
 ### 1. API
 
 ```bash
 cd server
 npm install
-cp .env.example .env        # then edit MONGO_URI and JWT_SECRET
+cp .env.example .env        # then add SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
 npm run seed                # creates a demo user + carton catalogue
 npm run dev                 # http://localhost:4000
 ```
@@ -152,11 +153,12 @@ server/
   src/
     index.js               Express app entry
     config.js              env config
-    db.js                  Mongo connection
+    supabase.js            Supabase client + connection check
+    data/                  queries (orders, containers, profiles)
     seed.js                demo data
-    models/                User, Order, Container
-    middleware/            auth (JWT), errors
-    routes/                auth, orders, containers
+    supabase/schema.sql    tables, policies, triggers
+    middleware/            auth (Supabase tokens + roles), errors
+    routes/                auth, orders, containers, admin
     services/
       solverClient.js      ← the ONLY place we talk to Solver
       mockSolver.js        stand-in until Solver ships
@@ -180,5 +182,5 @@ agreed interface changes, that file changes and nothing else does.
   library may prefer degrees or a quaternion. Settle this before Sprint 2.
 - The Portal **validates** every Solver reply before storing it
   (`validatePackResponse`). A malformed response fails loudly instead of writing
-  junk to Mongo that Visualizer then can't render.
+  junk to the database that Visualizer then can't render.
 - `.env` is gitignored. Never commit real secrets.

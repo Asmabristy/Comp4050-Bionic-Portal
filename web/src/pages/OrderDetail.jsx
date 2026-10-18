@@ -1,18 +1,28 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import FitVisualiser from "@bionic/visualiser";
+import { Icon } from "../components/Icon.jsx";
 import {
-  PackingPreview,
-  volumeFill,
-} from "../components/PackingPreview.jsx";
+  Plate,
+  TitleBlock,
+  SectionHead,
+  plateDate,
+} from "../components/Plate.jsx";
+import { Measure } from "../components/Measure.jsx";
+import { useAuth } from "../auth.jsx";
+import { isSupervisor } from "../roles.js";
 
 export function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canRunSolver = isSupervisor(user);
 
   const [order, setOrder] = useState(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [show3D, setShow3D] = useState(false);
 
   const load = () =>
     api
@@ -23,6 +33,11 @@ export function OrderDetail() {
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // A different order means the open 3D view no longer matches what's on screen.
+  useEffect(() => {
+    setShow3D(false);
   }, [id]);
 
   const pack = async () => {
@@ -58,278 +73,318 @@ export function OrderDetail() {
           </div>
         )}
 
-        <p className="muted mono">
-          Loading…
-        </p>
+        <div className="emptystate">
+          <p className="emptystate__text">Reading the order…</p>
+        </div>
       </>
     );
   }
 
   const result = order.result;
 
+  /*
+   * Packing summary values.
+   * These are derived from the actual stored Solver result.
+   */
+  const cartonsUsed =
+    result?.boxes?.length ?? 0;
+
+  const packedItems =
+    result?.boxes?.reduce(
+      (total, box) =>
+        total + (box.items?.length ?? 0),
+      0
+    ) ?? 0;
+
+  const unpackedItems =
+    result?.unpacked?.length ?? 0;
+
+  const selectedCartons = result?.boxes?.length
+    ? [
+        ...new Set(
+          result.boxes
+            .map((box) => box.boxId)
+            .filter(Boolean)
+        ),
+      ].join(", ")
+    : "—";
+
+  /*
+   * Calculate overall volume utilization using
+   * the same box information used by the 2D preview.
+   */
+ const utilization =
+  result?.boxes?.length
+    ? result.boxes.reduce(
+        (total, box) =>
+          total +
+          (typeof box.utilization === "number"
+            ? box.utilization
+            : 0),
+        0
+      ) / result.boxes.length
+    : null;
+  /*
+   * Some Solver result formats expose totalWeight
+   * on each box. If available, display it.
+   */
+  const totalWeight =
+    result?.boxes?.length &&
+    result.boxes.every(
+      (box) =>
+        typeof box.totalWeight === "number"
+    )
+      ? result.boxes.reduce(
+          (total, box) =>
+            total + box.totalWeight,
+          0
+        )
+      : null;
+
+  const utilizationPercent =
+    utilization !== null ? Math.round(utilization * 100) : null;
+
+  const totalUnits = order.items.reduce(
+    (total, item) => total + (Number(item.quantity) || 1),
+    0
+  );
+
   return (
     <>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">
-            Order
-          </div>
-
-          <h1>{order.reference}</h1>
-        </div>
-
-        <div className="stack-actions">
-          <span
-            className={`tag tag--${order.status}`}
-          >
-            {order.status}
-          </span>
-
-          <button
-            type="button"
-            onClick={pack}
-            disabled={busy}
-          >
-            {busy
-              ? "Packing…"
-              : result
-                ? "Re-pack"
-                : "Pack this order"}
-          </button>
-
-          <button
-            type="button"
-            className="btn-small btn-danger"
-            onClick={remove}
-          >
-            Delete
-          </button>
-        </div>
-      </div>
+      <button
+        type="button"
+        className="backlink"
+        onClick={() => navigate("/orders")}
+      >
+        <Icon name="arrowLeft" size={12} />
+        Back to the register
+      </button>
 
       {error && (
-        <div className="notice notice--error">
-          {error}
-        </div>
+        <div className="notice notice--error">{error}</div>
       )}
 
       {result?.source === "mock" && (
         <div className="notice notice--hivis">
-          Packed by the built-in stand-in solver,
-          not FitSolver. Set{" "}
-          <span className="mono">
-            USE_MOCK_SOLVER=false
-          </span>{" "}
-          once the solver package is ready.
+          Packed by the built-in stand-in solver, not FitSolver. Set{" "}
+          <span className="mono">USE_MOCK_SOLVER=false</span> once the Solver
+          package is ready.
         </div>
       )}
 
-      <div className="sheet">
-        <div className="sheet__head">
-          <h2>Manifest</h2>
-        </div>
-
-        <div className="rows">
-          <div className="row">
-            <div className="row__label">
-              Items
-            </div>
-
-            <div className="mono">
-              {order.items.length}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Carton types
-            </div>
-
-            <div className="mono">
-              {order.containers
-                .map(
-                  (container) =>
-                    container.reference
-                )
-                .join(", ") || "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Cartons used
-            </div>
-
-            <div className="mono">
-              {result?.boxes?.length ?? "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Unpacked
-            </div>
-
-            <div className="mono">
-              {result
-                ? result.unpacked?.length
-                  ? result.unpacked.join(", ")
-                  : "none"
-                : "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Solve time
-            </div>
-
-            <div className="mono">
-              {result
-                ? `${result.solverMs} ms`
-                : "—"}
-            </div>
-          </div>
-
-          <div className="row">
-            <div className="row__label">
-              Solver
-            </div>
-
-            <div className="mono">
-              {result?.source ===
-              "bionic-solver"
-                ? "Bionic FitSolver"
-                : result?.source === "mock"
-                  ? "Mock solver"
-                  : "—"}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {result?.message && (
-        <div
-          className={`notice ${
-            result.status === "error"
-              ? "notice--error"
-              : ""
-          }`}
-        >
-          {result.message}
-        </div>
-      )}
-
-      {result?.status === "success" &&
-        result.boxes?.length > 0 && (
-          <div className="sheet">
-            <div className="sheet__head">
-              <h2>Packing plan</h2>
-
-              <span
-                className="mono muted"
-                style={{
-                  fontSize: "0.72rem",
-                }}
-              >
-                Top-down · mm
-              </span>
-            </div>
-
-            <div className="boxgrid">
-              {result.boxes.map(
-                (box, index) => {
-                  const fill =
-                    volumeFill(box);
-
-                  return (
-                    <div
-                      className="boxcard"
-                      key={`${box.boxId}-${index}`}
-                    >
-                      <div className="boxcard__head">
-                        <span className="boxcard__id">
-                          {box.boxId} ·{" "}
-                          {index + 1}
-                        </span>
-
-                        <span
-                          className="mono muted"
-                          style={{
-                            fontSize:
-                              "0.72rem",
-                          }}
-                        >
-                          {box.items.length}{" "}
-                          items
-                        </span>
-                      </div>
-
-                      <PackingPreview
-                        box={box}
-                      />
-
-                      <div className="fillbar">
-                        <div
-                          className="fillbar__val"
-                          style={{
-                            width: `${fill}%`,
-                          }}
-                        />
-                      </div>
-
-                      <div className="fillnote">
-                        <span>
-                          Volume used
-                        </span>
-
-                        <span>
-                          {fill}%
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
+      <Plate>
+        <TitleBlock
+          name={order.reference}
+          fields={[
+            {
+              label: "Status",
+              value: (
+                <span className={`tag tag--${order.status}`}>
+                  {order.status}
+                </span>
+              ),
+            },
+            { label: "Items", value: order.items.length },
+            { label: "Units", value: totalUnits },
+            {
+              label: "Cartons offered",
+              value:
+                order.containers
+                  .map((container) => container.reference)
+                  .join(" · ") || "—",
+            },
+            {
+              label: "Raised",
+              value: order.createdAt ? plateDate(order.createdAt) : "—",
+            },
+          ]}
+          actions={
+            <>
+              {canRunSolver && (
+                <button type="button" onClick={pack} disabled={busy}>
+                  {busy
+                    ? "Packing…"
+                    : result
+                      ? "Re-pack"
+                      : "Pack this order"}
+                </button>
               )}
+
+              <button
+                type="button"
+                className="btn-ghost btn-small btn-danger"
+                onClick={remove}
+              >
+                Delete
+              </button>
+            </>
+          }
+        />
+
+        {/* ===================================================
+            LOAD PLAN — the order's one subject, full width
+            =================================================== */}
+
+        {result ? (
+          <div className="loadplan">
+            <div className="loadplan__head">
+              <h2 className="loadplan__title">Load plan</h2>
+
+              <p className="loadplan__note">
+                Computed by{" "}
+                {result.source === "mock"
+                  ? "the stand-in solver"
+                  : "Bionic FitSolver"}
+                {result.solverMs != null && ` in ${result.solverMs} ms`}
+              </p>
             </div>
 
-            <div
-              className="viz-slot"
-              style={{
-                marginTop: 20,
-              }}
-            >
-              FitVisualizer 3D view mounts
-              here — reads GET
-              /api/orders/{order.id}/result
+            <Measure
+              label="Volume used across the cartons packed"
+              ratio={
+                utilizationPercent !== null
+                  ? `${cartonsUsed} ${
+                      cartonsUsed === 1 ? "carton" : "cartons"
+                    }`
+                  : "Not measured"
+              }
+              percent={utilizationPercent ?? 0}
+              value={utilizationPercent ?? "—"}
+              unit={utilizationPercent !== null ? "%" : ""}
+              short={unpackedItems > 0}
+              deficit={
+                unpackedItems > 0
+                  ? `Not packed — ${unpackedItems} ${
+                      unpackedItems === 1 ? "item" : "items"
+                    }`
+                  : "Everything fitted"
+              }
+            />
+
+            <div className="loadplan__figures">
+              <div className="loadplan__figure">
+                <span>Cartons used</span>
+                <strong>{cartonsUsed}</strong>
+              </div>
+
+              <div className="loadplan__figure">
+                <span>Items placed</span>
+                <strong>{packedItems}</strong>
+              </div>
+
+              <div className="loadplan__figure">
+                <span>Not packed</span>
+                <strong className={unpackedItems > 0 ? "is-short" : ""}>
+                  {unpackedItems}
+                </strong>
+              </div>
+
+              <div className="loadplan__figure">
+                <span>Cartons selected</span>
+                <strong style={{ fontSize: "1.0625rem" }}>
+                  {selectedCartons}
+                </strong>
+              </div>
+
+              <div className="loadplan__figure">
+                <span>Total weight</span>
+                <strong style={{ fontSize: "1.0625rem" }}>
+                  {totalWeight !== null
+                    ? `${totalWeight.toFixed(2)} kg`
+                    : "—"}
+                </strong>
+              </div>
             </div>
+          </div>
+        ) : (
+          <div className="emptystate">
+            <div className="tile">
+              <Icon name="cube" size={18} />
+            </div>
+
+            <p className="emptystate__title">Not packed yet</p>
+
+            <p className="emptystate__text">
+              {canRunSolver
+                ? "Run the packing algorithm to produce a load plan for this order."
+                : "A supervisor runs the packing algorithm for this order."}
+            </p>
           </div>
         )}
 
-      <div className="sheet">
-        <div className="sheet__head">
-          <div>
-            <h2>Items</h2>
-
-            <p className="muted">
-              Dimensions in mm · Weight
-              in kg
-            </p>
+        {result?.message && (
+          <div
+            className={`notice ${
+              result.status === "error" ? "notice--error" : ""
+            }`}
+            style={{ border: 0, borderTop: "1px solid var(--rule)" }}
+          >
+            {result.message}
           </div>
-        </div>
+        )}
+      </Plate>
 
-        <div
-          style={{
-            overflowX: "auto",
-          }}
-        >
+      {/* ===================================================
+          3D INSPECTION
+          =================================================== */}
+
+      {result?.status === "success" && (
+        <Plate>
+          <SectionHead
+            title="Three-dimensional inspection"
+            note="The same result, rendered by FitVisualizer"
+          />
+
+          <div className="visualizer">
+            <div className="visualizer__text">
+              <h3>Interactive packing view</h3>
+
+              <p>
+                {show3D
+                  ? "Drag to rotate, scroll to zoom, and select an item for its dimensions."
+                  : "Open FitVisualizer to inspect the carton and item placements the solver produced."}
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShow3D((open) => !open)}
+              aria-expanded={show3D}
+              aria-controls="fit-visualiser"
+            >
+              {show3D ? "Hide 3D" : "View in 3D"}
+            </button>
+          </div>
+
+          {show3D && (
+            <div className="visualizer-stage" id="fit-visualiser">
+              <FitVisualiser result={result} />
+            </div>
+          )}
+        </Plate>
+      )}
+
+      {/* ===================================================
+          ITEMS
+          =================================================== */}
+
+      <Plate>
+        <SectionHead
+          title="Items"
+          note="Dimensions in mm · weight in kg"
+          actions={
+            <span className="axon__legend">
+              W across · L back · D up
+            </span>
+          }
+        />
+
+        <div className="register">
           <table>
             <thead>
               <tr>
                 <th>Item code</th>
-                <th>
-                  Item reference
-                </th>
+                <th>Item reference</th>
                 <th>Width</th>
                 <th>Length</th>
                 <th>Depth</th>
@@ -340,50 +395,22 @@ export function OrderDetail() {
             </thead>
 
             <tbody>
-              {order.items.map(
-                (item, index) => (
-                  <tr
-                    key={`${item.itemCode}-${index}`}
-                  >
-                    <td className="mono">
-                      {item.itemCode}
-                    </td>
-
-                    <td>
-                      {item.itemReference}
-                    </td>
-
-                    <td className="mono">
-                      {item.width}
-                    </td>
-
-                    <td className="mono">
-                      {item.length}
-                    </td>
-
-                    <td className="mono">
-                      {item.depth}
-                    </td>
-
-                    <td className="mono">
-                      {item.weight}
-                    </td>
-
-                    <td className="mono">
-                      {item.quantity ?? 1}
-                    </td>
-
-                    <td className="mono">
-                      {item.boxGroup ||
-                        "—"}
-                    </td>
-                  </tr>
-                )
-              )}
+              {order.items.map((item, index) => (
+                <tr key={`${item.itemCode}-${index}`}>
+                  <td className="mono">{item.itemCode}</td>
+                  <td>{item.itemReference}</td>
+                  <td>{item.width}</td>
+                  <td>{item.length}</td>
+                  <td>{item.depth}</td>
+                  <td>{item.weight}</td>
+                  <td>{item.quantity ?? 1}</td>
+                  <td className="mono">{item.boxGroup || "—"}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </Plate>
     </>
   );
 }

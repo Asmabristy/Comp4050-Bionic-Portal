@@ -1,8 +1,14 @@
 node_modules/
 dist/
 .env
+.env.*
+!.env.example
 .env.local
 *.log
 .DS_Store
 .vscode/
 .idea/
+
+# Impeccable build artifacts (the design system itself is committed)
+.impeccable/review/
+.impeccable/questions/
