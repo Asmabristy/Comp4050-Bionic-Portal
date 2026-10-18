@@ -45,7 +45,7 @@ Detailed requirements and shared data formats will be refined with the client, F
 |---|---|
 | Frontend | React |
 | Backend | Node.js and Express |
-| Database | MongoDB |
+| Database | Supabase (Postgres) |
 | Data exchange | REST and JSON |
 | Version control | Git and GitHub |
 | Project management | Trello |

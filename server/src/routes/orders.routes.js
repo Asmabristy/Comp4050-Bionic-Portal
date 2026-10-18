@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { Order } from "../models/Order.js";
-import { Container } from "../models/Container.js";
-import { requireAuth } from "../middleware/auth.js";
+import * as orderStore from "../data/orders.js";
+import * as containerStore from "../data/containers.js";
+import { requireAuth, requireSupervisor } from "../middleware/auth.js";
 import { asyncRoute, HttpError } from "../middleware/errors.js";
 import { requestPacking } from "../services/solverClient.js";
 
@@ -9,11 +9,8 @@ export const ordersRouter = Router();
 
 ordersRouter.use(requireAuth);
 
-async function findOwnedOrder(req) {
-  const order = await Order.findOne({
-    _id: req.params.id,
-    owner: req.user._id,
-  });
+async function findOrder(req) {
+  const order = await orderStore.findById(req.params.id);
 
   if (!order) {
     throw new HttpError(404, "That order doesn't exist.");
@@ -21,6 +18,17 @@ async function findOwnedOrder(req) {
 
   return order;
 }
+
+/*
+ * Upper bounds. Without these a single request can take the API down: quantity
+ * is expanded into one record per unit before the order reaches Solver, so
+ * quantity 999999 becomes ~85MB of JSON. These are generous for real orders and
+ * still small enough to stay safe.
+ */
+const MAX_REFERENCE_LENGTH = 120;
+const MAX_ITEM_ROWS = 500;
+const MAX_QUANTITY = 10000;
+const MAX_TOTAL_UNITS = 20000;
 
 /**
  * Validate items received from either:
@@ -30,6 +38,13 @@ async function findOwnedOrder(req) {
 function validateItems(items) {
   if (!Array.isArray(items) || items.length === 0) {
     throw new HttpError(400, "Add at least one item to the order.");
+  }
+
+  if (items.length > MAX_ITEM_ROWS) {
+    throw new HttpError(
+      400,
+      `An order can have at most ${MAX_ITEM_ROWS} item rows.`
+    );
   }
 
   items.forEach((item, index) => {
@@ -80,7 +95,27 @@ function validateItems(items) {
         `Item ${item.itemCode} needs a quantity of at least 1.`
       );
     }
+
+    if (item.quantity !== undefined && item.quantity > MAX_QUANTITY) {
+      throw new HttpError(
+        400,
+        `Item ${item.itemCode} has a quantity above the ${MAX_QUANTITY} limit.`
+      );
+    }
   });
+
+  // Each unit becomes its own record for Solver, so the total is what matters.
+  const totalUnits = items.reduce(
+    (sum, item) => sum + (Number(item.quantity) || 1),
+    0
+  );
+
+  if (totalUnits > MAX_TOTAL_UNITS) {
+    throw new HttpError(
+      400,
+      `This order has ${totalUnits} units in total, above the ${MAX_TOTAL_UNITS} limit.`
+    );
+  }
 }
 
 function validateContainers(containers) {
@@ -150,14 +185,10 @@ function validateContainers(containers) {
 ordersRouter.get(
   "/",
   asyncRoute(async (req, res) => {
-    const orders = await Order.find({
-      owner: req.user._id,
-    })
-      .sort({ createdAt: -1 })
-      .limit(100);
+    const list = await orderStore.listAll();
 
     res.json({
-      orders: orders.map((o) => o.toPublic()),
+      orders: list.slice(0, 100),
     });
   })
 );
@@ -177,6 +208,22 @@ ordersRouter.post(
       throw new HttpError(400, "Give the order a reference.");
     }
 
+    if (String(reference).trim().length > MAX_REFERENCE_LENGTH) {
+      throw new HttpError(
+        400,
+        `The order reference can be at most ${MAX_REFERENCE_LENGTH} characters.`
+      );
+    }
+
+    // References identify orders to people, so two orders sharing one is a
+    // problem however it happened — a typo, or a double-submitted form.
+    if (await orderStore.referenceTaken(String(reference).trim())) {
+      throw new HttpError(
+        409,
+        `An order with reference "${String(reference).trim()}" already exists.`
+      );
+    }
+
     validateItems(items);
 
     /*
@@ -189,9 +236,7 @@ ordersRouter.post(
       !Array.isArray(chosenContainers) ||
       chosenContainers.length === 0
     ) {
-      const catalogue = await Container.find({
-        active: true,
-      });
+      const catalogue = await containerStore.listActive();
 
       if (catalogue.length === 0) {
         throw new HttpError(
@@ -214,16 +259,16 @@ ordersRouter.post(
       validateContainers(chosenContainers);
     }
 
-    const order = await Order.create({
+    const order = await orderStore.create({
       reference: String(reference).trim(),
-      owner: req.user._id,
+      ownerId: req.user.id,
       items,
       containers: chosenContainers,
       status: "draft",
     });
 
     res.status(201).json({
-      order: order.toPublic(),
+      order,
     });
   })
 );
@@ -232,10 +277,10 @@ ordersRouter.post(
 ordersRouter.get(
   "/:id",
   asyncRoute(async (req, res) => {
-    const order = await findOwnedOrder(req);
+    const order = await findOrder(req);
 
     res.json({
-      order: order.toPublic(),
+      order,
     });
   })
 );
@@ -247,47 +292,68 @@ ordersRouter.get(
  */
 ordersRouter.post(
   "/:id/pack",
+  requireSupervisor,
   asyncRoute(async (req, res) => {
-    const order = await findOwnedOrder(req);
+    const order = await findOrder(req);
 
-    order.status = "packing";
-    await order.save();
+    /*
+     * The order carries a snapshot of the cartons taken when it was raised, so
+     * its dimensions stay reproducible. But a carton deactivated since then —
+     * out of stock, withdrawn — must not be packed into, and the snapshot alone
+     * would happily keep using it.
+     */
+    const stillActive = new Set(
+      (await containerStore.listActive()).map((c) => c.reference)
+    );
+
+    const usableContainers = (order.containers || []).filter((c) =>
+      stillActive.has(c.reference)
+    );
+
+    if (usableContainers.length === 0) {
+      throw new HttpError(
+        400,
+        "None of this order's carton types are active any more. Reactivate one, or raise the order again."
+      );
+    }
+
+    await orderStore.update(order.id, { status: "packing" });
 
     try {
-      const solved = await requestPacking(order);
+      const solved = await requestPacking({
+        ...order,
+        containers: usableContainers,
+      });
 
-      order.result = {
-        status: solved.status,
-        message: solved.message || "",
-        boxes: solved.boxes || [],
-        unpacked: solved.unpacked || [],
-        solvedAt: new Date(),
-        solverMs: solved.solverMs || 0,
-        source: solved.source || "solver",
-      };
-
-      order.status =
-        solved.status === "success" ? "packed" : "failed";
-
-      await order.save();
+      const updated = await orderStore.update(order.id, {
+        status: solved.status === "success" ? "packed" : "failed",
+        result: {
+          status: solved.status,
+          message: solved.message || "",
+          boxes: solved.boxes || [],
+          unpacked: solved.unpacked || [],
+          solvedAt: new Date().toISOString(),
+          solverMs: solved.solverMs || 0,
+          source: solved.source || "solver",
+        },
+      });
 
       res.json({
-        order: order.toPublic(),
+        order: updated,
       });
     } catch (err) {
-      order.status = "failed";
-
-      order.result = {
-        status: "error",
-        message: err.message,
-        boxes: [],
-        unpacked: order.items.map((item) => item.itemCode),
-        solvedAt: new Date(),
-        solverMs: 0,
-        source: "solver",
-      };
-
-      await order.save();
+      await orderStore.update(order.id, {
+        status: "failed",
+        result: {
+          status: "error",
+          message: err.message,
+          boxes: [],
+          unpacked: order.items.map((item) => item.itemCode),
+          solvedAt: new Date().toISOString(),
+          solverMs: 0,
+          source: "solver",
+        },
+      });
 
       throw new HttpError(
         502,
@@ -305,7 +371,7 @@ ordersRouter.post(
 ordersRouter.get(
   "/:id/result",
   asyncRoute(async (req, res) => {
-    const order = await findOwnedOrder(req);
+    const order = await findOrder(req);
 
     if (!order.result) {
       throw new HttpError(
@@ -315,7 +381,7 @@ ordersRouter.get(
     }
 
     res.json({
-      orderId: order._id.toString(),
+      orderId: order.id,
       reference: order.reference,
       status: order.result.status,
       message: order.result.message,
@@ -329,14 +395,23 @@ ordersRouter.get(
 ordersRouter.delete(
   "/:id",
   asyncRoute(async (req, res) => {
-    const order = await Order.findOneAndDelete({
-      _id: req.params.id,
-      owner: req.user._id,
-    });
+    const existing = await orderStore.findById(req.params.id);
 
-    if (!order) {
+    if (!existing) {
       throw new HttpError(404, "That order doesn't exist.");
     }
+
+    // Reading is shared, but deleting someone else's order is not.
+    const isOwner = existing.ownerId === req.user.id;
+
+    if (!isOwner && req.user.role !== "supervisor") {
+      throw new HttpError(
+        403,
+        "Only the person who raised this order, or a supervisor, can delete it."
+      );
+    }
+
+    await orderStore.remove(req.params.id);
 
     res.json({
       deleted: true,

@@ -1,21 +1,39 @@
 import express from "express";
 import cors from "cors";
 import { config } from "./config.js";
-import { connectDb } from "./db.js";
+import { connectDb } from "./supabase.js";
 import { authRouter } from "./routes/auth.routes.js";
 import { ordersRouter } from "./routes/orders.routes.js";
 import { containersRouter } from "./routes/containers.routes.js";
+import { adminRouter } from "./routes/admin.routes.js";
 import { notFound, errorHandler } from "./middleware/errors.js";
 
 const app = express();
 
-app.use(cors({ origin: config.webOrigin, credentials: true }));
+app.use(
+  cors({
+    // Allow any origin in the configured list. Requests with no Origin header
+    // (curl, server-to-server) pass through too.
+    origin(origin, callback) {
+      // Don't throw on a disallowed origin — that surfaces as a confusing 500.
+      // Returning false just omits the CORS headers, so the browser reports a
+      // proper CORS error and the server log stays clean.
+      if (origin && !config.webOrigins.includes(origin)) {
+        console.warn(`[cors] blocked origin ${origin} (allowed: ${config.webOrigins.join(", ")})`);
+        return callback(null, false);
+      }
+      callback(null, true);
+    },
+    credentials: true,
+  })
+);
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/health", (req, res) => {
   res.json({
     ok: true,
     service: "fitportal-api",
+    db: "supabase",
     solver: config.useMockSolver ? "mock" : config.solverUrl,
   });
 });
@@ -23,6 +41,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/orders", ordersRouter);
 app.use("/api/containers", containersRouter);
+app.use("/api/admin", adminRouter);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
+import { useAuth } from "../auth.jsx";
+import { isSupervisor } from "../roles.js";
+import { Icon } from "../components/Icon.jsx";
+import {
+  Plate,
+  TitleBlock,
+  SectionHead,
+} from "../components/Plate.jsx";
+import { Axon } from "../components/Axon.jsx";
 
 const blankItem = () => ({
   itemCode: "",
@@ -18,11 +27,23 @@ export function NewOrder() {
   const [items, setItems] = useState([blankItem()]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  const [mode, setMode] = useState("manual");
+  const [csvFileName, setCsvFileName] = useState("");
+
   const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const canRunSolver = isSupervisor(user);
 
   const updateItem = (index, key, value) => {
     const next = [...items];
-    next[index] = { ...next[index], [key]: value };
+
+    next[index] = {
+      ...next[index],
+      [key]: value,
+    };
+
     setItems(next);
   };
 
@@ -31,7 +52,117 @@ export function NewOrder() {
   };
 
   const removeItem = (index) => {
-    setItems(items.filter((_, i) => i !== index));
+    setItems(
+      items.filter((_, itemIndex) => itemIndex !== index)
+    );
+  };
+
+  const switchToManual = () => {
+    setMode("manual");
+    setError("");
+  };
+
+  const switchToCsv = () => {
+    setMode("csv");
+    setError("");
+  };
+
+  const importCsv = (event) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setError("");
+    setCsvFileName(file.name);
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || "").trim();
+
+        if (!text) {
+          setError("The selected CSV file is empty.");
+          return;
+        }
+
+        const lines = text
+          .split(/\r?\n/)
+          .filter((line) => line.trim());
+
+        if (lines.length < 2) {
+          setError(
+            "The CSV needs a header row and at least one item."
+          );
+          return;
+        }
+
+        const headers = lines[0]
+          .split(",")
+          .map((header) => header.trim());
+
+        const requiredHeaders = [
+          "itemCode",
+          "itemReference",
+          "width",
+          "length",
+          "depth",
+          "weight",
+        ];
+
+        const missingHeaders = requiredHeaders.filter(
+          (header) => !headers.includes(header)
+        );
+
+        if (missingHeaders.length > 0) {
+          setError(
+            `Missing CSV columns: ${missingHeaders.join(", ")}`
+          );
+          return;
+        }
+
+        const importedItems = lines
+          .slice(1)
+          .map((line) => {
+            const values = line
+              .split(",")
+              .map((value) => value.trim());
+
+            const row = {};
+
+            headers.forEach((header, index) => {
+              row[header] = values[index] ?? "";
+            });
+
+            return {
+              itemCode: row.itemCode ?? "",
+              itemReference: row.itemReference ?? "",
+              width: row.width ?? "",
+              length: row.length ?? "",
+              depth: row.depth ?? "",
+              weight: row.weight ?? "",
+              quantity: row.quantity || 1,
+              boxGroup: row.boxGroup ?? "",
+            };
+          })
+          .filter((item) => item.itemCode);
+
+        if (importedItems.length === 0) {
+          setError(
+            "No valid item rows were found in the CSV."
+          );
+          return;
+        }
+
+        setItems(importedItems);
+      } catch {
+        setError("The CSV file could not be imported.");
+      }
+    };
+
+    reader.readAsText(file);
   };
 
   const save = async (thenPack) => {
@@ -51,11 +182,13 @@ export function NewOrder() {
       }));
 
     if (!reference.trim()) {
-      return setError("Give the order a reference.");
+      setError("Give the order a reference.");
+      return;
     }
 
     if (cleaned.length === 0) {
-      return setError("Add at least one item.");
+      setError("Add at least one item.");
+      return;
     }
 
     const missingReference = cleaned.find(
@@ -63,9 +196,10 @@ export function NewOrder() {
     );
 
     if (missingReference) {
-      return setError(
+      setError(
         `${missingReference.itemCode} needs an item reference.`
       );
+      return;
     }
 
     const badDimensions = cleaned.find(
@@ -78,9 +212,10 @@ export function NewOrder() {
     );
 
     if (badDimensions) {
-      return setError(
+      setError(
         `${badDimensions.itemCode} needs width, length, and depth above zero.`
       );
+      return;
     }
 
     const badWeight = cleaned.find(
@@ -90,9 +225,10 @@ export function NewOrder() {
     );
 
     if (badWeight) {
-      return setError(
+      setError(
         `${badWeight.itemCode} needs a valid weight.`
       );
+      return;
     }
 
     setBusy(true);
@@ -114,54 +250,116 @@ export function NewOrder() {
     }
   };
 
+  /*
+   * Rows that carry all three dimensions can be drawn. The preview is read
+   * only -- it exists so the operator sees which axis each figure is going
+   * into before the order is saved.
+   */
+  const drawable = items.filter(
+    (item) =>
+      Number(item.width) > 0 &&
+      Number(item.length) > 0 &&
+      Number(item.depth) > 0
+  );
+
+  const shown = drawable.slice(0, 8);
+
+  const totalUnits = items.reduce(
+    (total, item) => total + (Number(item.quantity) || 1),
+    0
+  );
+
   return (
     <>
-      <div className="page-head">
-        <div>
-          <div className="eyebrow">Operations</div>
-          <h1>New order</h1>
-        </div>
-      </div>
+      {error && <div className="notice notice--error">{error}</div>}
 
-      {error && (
-        <div className="notice notice--error">
-          {error}
-        </div>
-      )}
+      <Plate>
+        <TitleBlock
+          name="New order"
+          fields={[
+            { label: "Reference", value: reference.trim() || "Not set" },
+            { label: "Item rows", value: items.length },
+            { label: "Units", value: totalUnits },
+          ]}
+        />
 
-      <div className="sheet">
-        <div
-          className="field"
-          style={{ maxWidth: 340 }}
-        >
-          <label htmlFor="reference">
-            Order reference
-          </label>
-
-          <input
-            id="reference"
-            value={reference}
-            placeholder="PO-40128"
-            onChange={(e) =>
-              setReference(e.target.value)
-            }
-          />
-        </div>
-      </div>
-
-      <div className="sheet">
-        <div className="sheet__head">
-          <h2>Items</h2>
-
-          <span
-            className="mono muted"
-            style={{ fontSize: "0.72rem" }}
+        <div className="tabs">
+          <button
+            type="button"
+            className={`tab ${mode === "manual" ? "tab--active" : ""}`.trim()}
+            onClick={switchToManual}
           >
-            Dimensions in mm · Weight in kg
-          </span>
+            Manual entry
+          </button>
+
+          <button
+            type="button"
+            className={`tab ${mode === "csv" ? "tab--active" : ""}`.trim()}
+            onClick={switchToCsv}
+          >
+            CSV import
+          </button>
         </div>
 
-        <div style={{ overflowX: "auto" }}>
+        {mode === "csv" && (
+          <div className="plate__body">
+            <div className="csv-upload">
+              <input
+                id="csv-file"
+                type="file"
+                accept=".csv,text/csv"
+                onChange={importCsv}
+              />
+
+              {csvFileName && (
+                <span className="csv-file-selected">
+                  Loaded {csvFileName}
+                </span>
+              )}
+            </div>
+
+            <p className="csv-format-note">
+              <span>Required columns </span>
+              <code>
+                itemCode, itemReference, width, length, depth, weight,
+                quantity, boxGroup
+              </code>
+            </p>
+          </div>
+        )}
+
+        <div className="plate__body">
+          <div className="field" style={{ maxWidth: 340 }}>
+            <label htmlFor="reference">Order reference</label>
+
+            <input
+              id="reference"
+              value={reference}
+              placeholder="PO-40128"
+              onChange={(event) => setReference(event.target.value)}
+            />
+          </div>
+        </div>
+      </Plate>
+
+      {/* ===================================================
+          ITEM SPECIFICATION
+          =================================================== */}
+
+      <Plate>
+        <SectionHead
+          title={mode === "csv" ? "Imported items" : "Items"}
+          note={
+            mode === "csv"
+              ? "Every imported value can still be edited"
+              : "Dimensions in mm · weight in kg"
+          }
+          actions={
+            <span className="axon__legend">W across · L back · D up</span>
+          }
+        />
+
+        <div className="register">
           <table>
             <thead>
               <tr>
@@ -183,19 +381,14 @@ export function NewOrder() {
                   <td>
                     <input
                       value={item.itemCode}
-                      placeholder={`ITM-${String(
-                        index + 1
-                      ).padStart(3, "0")}`}
-                      onChange={(e) =>
-                        updateItem(
-                          index,
-                          "itemCode",
-                          e.target.value
-                        )
+                      placeholder={`ITM-${String(index + 1).padStart(
+                        3,
+                        "0"
+                      )}`}
+                      onChange={(event) =>
+                        updateItem(index, "itemCode", event.target.value)
                       }
-                      aria-label={`Item ${
-                        index + 1
-                      } code`}
+                      aria-label={`Item ${index + 1} code`}
                     />
                   </td>
 
@@ -203,41 +396,28 @@ export function NewOrder() {
                     <input
                       value={item.itemReference}
                       placeholder="Widget A"
-                      onChange={(e) =>
+                      onChange={(event) =>
                         updateItem(
                           index,
                           "itemReference",
-                          e.target.value
+                          event.target.value
                         )
                       }
-                      aria-label={`Item ${
-                        index + 1
-                      } reference`}
+                      aria-label={`Item ${index + 1} reference`}
                     />
                   </td>
 
-                  {[
-                    "width",
-                    "length",
-                    "depth",
-                    "weight",
-                  ].map((key) => (
+                  {["width", "length", "depth", "weight"].map((key) => (
                     <td key={key}>
                       <input
                         type="number"
                         min="0"
                         step="any"
                         value={item[key]}
-                        onChange={(e) =>
-                          updateItem(
-                            index,
-                            key,
-                            e.target.value
-                          )
+                        onChange={(event) =>
+                          updateItem(index, key, event.target.value)
                         }
-                        aria-label={`Item ${
-                          index + 1
-                        } ${key}`}
+                        aria-label={`Item ${index + 1} ${key}`}
                       />
                     </td>
                   ))}
@@ -248,16 +428,10 @@ export function NewOrder() {
                       min="1"
                       step="1"
                       value={item.quantity}
-                      onChange={(e) =>
-                        updateItem(
-                          index,
-                          "quantity",
-                          e.target.value
-                        )
+                      onChange={(event) =>
+                        updateItem(index, "quantity", event.target.value)
                       }
-                      aria-label={`Item ${
-                        index + 1
-                      } quantity`}
+                      aria-label={`Item ${index + 1} quantity`}
                     />
                   </td>
 
@@ -265,29 +439,20 @@ export function NewOrder() {
                     <input
                       value={item.boxGroup}
                       placeholder="GROUP-A"
-                      onChange={(e) =>
-                        updateItem(
-                          index,
-                          "boxGroup",
-                          e.target.value
-                        )
+                      onChange={(event) =>
+                        updateItem(index, "boxGroup", event.target.value)
                       }
-                      aria-label={`Item ${
-                        index + 1
-                      } box group`}
+                      aria-label={`Item ${index + 1} box group`}
                     />
                   </td>
 
                   <td className="text-right">
                     <button
+                      type="button"
                       className="btn-small btn-danger"
-                      onClick={() =>
-                        removeItem(index)
-                      }
+                      onClick={() => removeItem(index)}
                       disabled={items.length === 1}
-                      aria-label={`Remove item ${
-                        index + 1
-                      }`}
+                      aria-label={`Remove item ${index + 1}`}
                     >
                       Remove
                     </button>
@@ -298,37 +463,69 @@ export function NewOrder() {
           </table>
         </div>
 
-        <div
-          style={{ marginTop: 16 }}
-          className="stack-actions"
-        >
-          <button
-            className="btn-ghost btn-small"
-            onClick={addItem}
-          >
-            Add item
-          </button>
+        {shown.length > 0 && (
+          <div className="preview">
+            {shown.map((item, index) => (
+              <div className="preview__cell" key={index}>
+                <span className="preview__ref">
+                  {item.itemCode || item.itemReference || `Row ${index + 1}`}
+                </span>
+
+                <Axon
+                  width={item.width}
+                  length={item.length}
+                  depth={item.depth}
+                  title={`${
+                    item.itemCode || `Row ${index + 1}`
+                  }: width ${item.width}, length ${item.length}, depth ${
+                    item.depth
+                  } millimetres`}
+                />
+              </div>
+            ))}
+
+            {drawable.length > shown.length && (
+              <div className="preview__cell">
+                <span className="preview__ref">
+                  {drawable.length - shown.length} more specified
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="plate__body">
+          <div className="stack-actions">
+            <button
+              type="button"
+              className="btn-ghost btn-small"
+              onClick={addItem}
+            >
+              <Icon name="plus" size={13} />
+              Add item row
+            </button>
+          </div>
         </div>
-      </div>
 
-      <div className="stack-actions">
-        <button
-          onClick={() => save(true)}
-          disabled={busy}
-        >
-          {busy
-            ? "Packing…"
-            : "Save and pack"}
-        </button>
+        <div className="plate__body plate__body--footer">
+          <div className="stack-actions">
+            {canRunSolver && (
+              <button type="button" onClick={() => save(true)} disabled={busy}>
+                {busy ? "Packing…" : "Save and pack"}
+              </button>
+            )}
 
-        <button
-          className="btn-ghost"
-          onClick={() => save(false)}
-          disabled={busy}
-        >
-          Save as draft
-        </button>
-      </div>
+            <button
+              type="button"
+              className="btn-ghost"
+              onClick={() => save(false)}
+              disabled={busy}
+            >
+              Save as draft
+            </button>
+          </div>
+        </div>
+      </Plate>
     </>
   );
 }
