@@ -505,8 +505,8 @@ export function Cartons() {
 
   const EDITABLE = [
     "width",
-    "length",
     "depth",
+    "length",
     "maxWeight",
     "boxWeight",
     "maximumBoxes",
@@ -566,9 +566,9 @@ export function Cartons() {
 
         <SectionHead
           title="Catalogue"
-          note="Width runs across, length runs back, depth is the vertical one"
+          note="X: width across, Y: depth up, Z: length back"
           actions={
-            <span className="axon__legend">W across · L back · D up</span>
+            <span className="axon__legend">X: W across · Y: D up · Z: L back</span>
           }
         />
 
@@ -610,7 +610,7 @@ export function Cartons() {
                   length={carton.length}
                   depth={carton.depth}
                   span={74}
-                  title={`Carton ${carton.reference}: width ${carton.width}, length ${carton.length}, depth ${carton.depth} millimetres`}
+                  title={`Carton ${carton.reference}: width ${carton.width}, depth ${carton.depth}, length ${carton.length} millimetres`}
                 />
 
                 <div className="catalogue__spec">
@@ -658,9 +658,9 @@ export function Cartons() {
             <thead>
               <tr>
                 <th>Reference</th>
-                <th>Width</th>
-                <th>Length</th>
-                <th>Depth</th>
+                <th>Width (X)</th>
+                <th>Depth (Y)</th>
+                <th>Length (Z)</th>
                 <th>Max weight</th>
                 <th>Box weight</th>
                 <th>Max boxes</th>
@@ -755,9 +755,9 @@ export function Cartons() {
                   return (
                     <tr key={carton.id}>
                       <td className="mono">{carton.reference}</td>
-                      <td>{carton.width}</td>
-                      <td>{carton.length}</td>
-                      <td>{carton.depth}</td>
+                        <td>{carton.width}</td>
+                        <td>{carton.depth}</td>
+                        <td>{carton.length}</td>
                       <td>{carton.maxWeight ?? "—"}</td>
                       <td>{carton.boxWeight ?? "—"}</td>
                       <td>{carton.maximumBoxes ?? "—"}</td>
@@ -855,7 +855,7 @@ export function Cartons() {
                   <thead>
                     <tr>
                       <th>Reference</th>
-                      <th>W × L × D</th>
+                      <th>W × D × L (XYZ)</th>
                       <th>Max weight</th>
                       <th>Box weight</th>
                       <th>Max boxes</th>
@@ -870,7 +870,7 @@ export function Cartons() {
                         <td className="mono">{carton.reference}</td>
 
                         <td>
-                          {carton.width} × {carton.length} × {carton.depth}
+                          {carton.width} × {carton.depth} × {carton.length}
                         </td>
 
                         <td>{carton.maxWeight || "—"}</td>
@@ -942,7 +942,7 @@ export function Cartons() {
           title="Add a carton type"
           note="Added straight to the shared catalogue"
           actions={
-            <span className="axon__legend">W across · L back · D up</span>
+            <span className="axon__legend">X: W across · Y: D up · Z: L back</span>
           }
         />
 
@@ -977,21 +977,6 @@ export function Cartons() {
             </div>
 
             <div className="field">
-              <label htmlFor="new-carton-length">Length (mm)</label>
-
-              <input
-                id="new-carton-length"
-                type="number"
-                min="0"
-                step="any"
-                value={form.length}
-                onChange={(event) =>
-                  updateField("length", event.target.value)
-                }
-              />
-            </div>
-
-            <div className="field">
               <label htmlFor="new-carton-depth">Depth (mm)</label>
 
               <input
@@ -1002,6 +987,21 @@ export function Cartons() {
                 value={form.depth}
                 onChange={(event) =>
                   updateField("depth", event.target.value)
+                }
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="new-carton-length">Length (mm)</label>
+
+              <input
+                id="new-carton-length"
+                type="number"
+                min="0"
+                step="any"
+                value={form.length}
+                onChange={(event) =>
+                  updateField("length", event.target.value)
                 }
               />
             </div>
