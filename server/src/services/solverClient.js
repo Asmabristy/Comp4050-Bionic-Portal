@@ -1,11 +1,13 @@
+
 import { config } from "../config.js";
 import { mockPack } from "./mockSolver.js";
 
 /**
- * Convert the Portal's order items into the format expected by FitSolver.
+ * Expand Portal order quantities into individual physical items.
  *
- * The Solver currently has no quantity field, so quantity > 1 is expanded
- * into multiple physical item records.
+ * FitSolver expects each physical item separately.
+ * Each item receives a unique itemCode when quantity > 1.
+ * The original itemReference is preserved.
  */
 export function expandItems(items) {
   const expanded = [];
@@ -39,6 +41,11 @@ export function expandItems(items) {
 
 /**
  * Build the request expected by @bionic/solver.
+ *
+ * Portal and Solver dimensions:
+ * X = width
+ * Y = depth (vertical)
+ * Z = length
  */
 export function buildSolverRequest(order) {
   return {
@@ -72,24 +79,18 @@ export function buildSolverRequest(order) {
 }
 
 /**
- * Convert FitSolver's result into the stable result format used by FitPortal
- * and later consumed by FitVisualizer.
- */
-/*
- * Axis convention, confirmed against the solver binary.
+ * Convert the updated FitSolver response into the
+ * new FitVisualizer packing-result structure.
  *
- * Solver returns width/length/depth and positions x/y/z. Packing 60 items of
- * 10 x 40 x 20 into a carton showed which field belongs to which axis:
+ * FitSolver returns item details inside placement.item.
  *
- *   x steps by 10  -> x = width
- *   y steps by 20  -> y = depth
- *   z steps by 40  -> z = length
+ * Updated Visualizer dimensions:
+ * width  = X
+ * depth  = Y (vertical)
+ * length = Z
  *
- * FitVisualizer renders with y up, so the height of anything is its `depth`.
- * Mapping h from `length` made items render at the wrong size for the space
- * they were given — each one overlapping the next, and boxes poking through
- * the carton. FitVisualizer's own adapter already maps h from depth; this
- * brings Portal in line with it.
+ * Solver coordinates are preserved without translation.
+ * No artificial rotation is introduced.
  */
 export function normaliseSolverResponse(result, order) {
   if (!result || typeof result !== "object") {
@@ -97,65 +98,214 @@ export function normaliseSolverResponse(result, order) {
   }
 
   if (!Array.isArray(result.results)) {
-    throw new Error("Solver response is missing the results array.");
+    throw new Error(
+      "Solver response is missing the results array."
+    );
   }
 
   if (!Array.isArray(result.failed)) {
-    throw new Error("Solver response is missing the failed array.");
+    throw new Error(
+      "Solver response is missing the failed array."
+    );
   }
 
   const containersByReference = new Map(
-    order.containers.map((box) => [box.reference, box])
+    order.containers.map((box) => [
+      box.reference,
+      box,
+    ])
   );
 
-  const boxes = result.results.map((resultBox, boxIndex) => {
-    const container =
-      containersByReference.get(resultBox.boxReference);
+  const usedBoxIds = new Set();
 
-    return {
-      boxId: resultBox.boxReference,
+  const boxes = result.results.map(
+    (resultBox, boxIndex) => {
+      const reference =
+        resultBox.boxReference ??
+        resultBox.box_reference ??
+        `box-${boxIndex + 1}`;
 
-      dimensions: container
-        ? {
-            w: container.width,
-            h: container.depth,
-            d: container.length,
+      const container =
+        containersByReference.get(reference);
+
+      // Prefer actual dimensions returned by FitSolver.
+      // Fall back to the Portal's carton configuration.
+      const width =
+        resultBox.width ?? container?.width;
+
+      const length =
+        resultBox.length ?? container?.length;
+
+      const depth =
+        resultBox.depth ?? container?.depth;
+
+      if (
+        ![width, length, depth].every(
+          (value) =>
+            typeof value === "number" &&
+            Number.isFinite(value) &&
+            value > 0
+        )
+      ) {
+        throw new Error(
+          `Missing or invalid carton dimensions for ${reference}.`
+        );
+      }
+
+      // Multiple packed cartons can share one carton type.
+      // Give every packed carton a unique identifier.
+      let boxId = reference;
+      let suffix = 2;
+
+      while (usedBoxIds.has(boxId)) {
+        boxId = `${reference}-${suffix++}`;
+      }
+
+      usedBoxIds.add(boxId);
+
+      // Updated Visualizer dimension format.
+      const dimensions = {
+        width,
+        length,
+        depth,
+      };
+
+      if (!Array.isArray(resultBox.placements)) {
+        throw new Error(
+          `Solver returned invalid placements for ${reference}.`
+        );
+      }
+
+      const items = resultBox.placements.map(
+        (placement, placementIndex) => {
+          // Updated FitSolver response:
+          // placement.item contains the item's details.
+          const placedItem = placement?.item;
+
+          if (
+            !placedItem ||
+            typeof placedItem !== "object"
+          ) {
+            throw new Error(
+              `Solver placement ${placementIndex + 1} in ${reference} is missing item details.`
+            );
           }
-        : null,
 
-      totalWeight: resultBox.totalWeight ?? null,
+          // Prefer unique itemCode for physical item tracking.
+          // itemReference may be shared across quantities.
+          const itemId =
+            placedItem.itemCode ||
+            placedItem.itemReference ||
+            `placement-${boxIndex + 1}-${placementIndex + 1}`;
 
-      utilization: resultBox.utilization ?? null,
-
-      items: (resultBox.placements || []).map(
-        (placement, placementIndex) => ({
-          itemId:
-            placement.itemReference ||
-            placement.itemCode ||
-            `placement-${boxIndex + 1}-${placementIndex + 1}`,
-
-          itemCode: placement.itemCode ?? null,
-
-          itemReference:
-            placement.itemReference ?? null,
-
-          position: {
+          // Preserve Solver XYZ coordinates.
+          const position = {
             x: placement.x,
             y: placement.y,
             z: placement.z,
-          },
+          };
 
-          rotation: "XYZ",
+          // Updated Visualizer dimension format.
+          // Values come directly from placement.item.
+          const itemDimensions = {
+            width: placedItem.width,
+            length: placedItem.length,
+            depth: placedItem.depth,
+          };
 
-          dimensions: {
-            w: placement.width,
-            h: placement.depth,
-            d: placement.length,
-          },
-        })
-      ),
-    };
-  });
+          const values = [
+            position.x,
+            position.y,
+            position.z,
+            itemDimensions.width,
+            itemDimensions.length,
+            itemDimensions.depth,
+          ];
+
+          if (
+            !values.every(
+              (value) =>
+                typeof value === "number" &&
+                Number.isFinite(value)
+            )
+          ) {
+            throw new Error(
+              `Invalid placement data for ${itemId}.`
+            );
+          }
+
+          if (
+            itemDimensions.width <= 0 ||
+            itemDimensions.length <= 0 ||
+            itemDimensions.depth <= 0
+          ) {
+            throw new Error(
+              `Invalid item dimensions for ${itemId}.`
+            );
+          }
+
+          // Diagnostic validation only.
+          // Do not change the Solver's coordinates.
+          const tolerance = 0.001;
+
+          const outside =
+            position.x < -tolerance ||
+            position.y < -tolerance ||
+            position.z < -tolerance ||
+            position.x + itemDimensions.width >
+              dimensions.width + tolerance ||
+            position.y + itemDimensions.depth >
+              dimensions.depth + tolerance ||
+            position.z + itemDimensions.length >
+              dimensions.length + tolerance;
+
+          if (outside) {
+            console.warn(
+              "[solver] Placement outside carton:",
+              {
+                boxReference: reference,
+                itemId,
+                position,
+                itemDimensions,
+                cartonDimensions: dimensions,
+              }
+            );
+          }
+
+          return {
+            itemId,
+
+            itemCode:
+              placedItem.itemCode ?? null,
+
+            itemReference:
+              placedItem.itemReference ?? null,
+
+            position,
+
+            // No hardcoded rotation.
+            // Dimensions come from the Solver response.
+            dimensions: itemDimensions,
+          };
+        }
+      );
+
+      return {
+        boxId,
+        dimensions,
+
+        totalWeight:
+          resultBox.totalWeight ??
+          resultBox.total_weight ??
+          null,
+
+        utilization:
+          resultBox.utilization ?? null,
+
+        items,
+      };
+    }
+  );
 
   return {
     status: "success",
@@ -167,18 +317,36 @@ export function normaliseSolverResponse(result, order) {
 
     boxes,
 
-    unpacked: result.failed.map(
-      (item) => item.itemCode
-    ),
+    // The updated Solver can return nested failed items.
+    unpacked: result.failed
+      .map((entry) => {
+        if (typeof entry === "string") {
+          return entry;
+        }
 
-    algorithmUs: result.algorithmUs ?? null,
-    serverUs: result.serverUs ?? null,
+        const item = entry?.item ?? entry;
+
+        return (
+          item?.itemCode ??
+          item?.itemReference ??
+          null
+        );
+      })
+      .filter(Boolean),
+
+    algorithmUs:
+      result.algorithmUs ?? null,
+
+    serverUs:
+      result.serverUs ?? null,
   };
 }
+
 /**
- * Send an order to either:
- * - the temporary mock Solver, or
- * - the real @bionic/solver package.
+ * Send an order to the mock or real FitSolver.
+ *
+ * The complete raw Solver response is preserved
+ * for the existing PDF export functionality.
  */
 export async function requestPacking(order) {
   const startedAt = Date.now();
@@ -195,23 +363,44 @@ export async function requestPacking(order) {
     };
   }
 
- try {
-  const { solve } = await import("@bionic/solver");
+  try {
+    const { solve, SolveAlgorithm } = await import(
+      "@bionic/solver"
+    );
 
-  console.log("[solver] REQUEST:");
-  console.dir(request, { depth: null });
+    console.log("[solver] REQUEST:");
+    console.dir(request, { depth: null });
 
-  const result = await solve(request);
+    const result = await solve({
+      ...request,
+      algorithm: SolveAlgorithm.ExtremePoint,
+      options: {},
+    });
 
-  console.log("[solver] RAW RESPONSE:");
-  console.dir(result, { depth: null });
+    console.log("[solver] RAW RESPONSE:");
+    console.dir(result, { depth: null });
 
-  return {
-    ...normaliseSolverResponse(result, order),
-    solverMs: Date.now() - startedAt,
-    source: "bionic-solver",
-  };
-} catch (err) {
-    throw new Error(`FitSolver failed: ${err.message}`);
+    const normalisedResult =
+      normaliseSolverResponse(result, order);
+
+    console.log("[solver] VISUALIZER RESPONSE:");
+    console.dir(normalisedResult, {
+      depth: null,
+    });
+
+    return {
+      ...normalisedResult,
+
+      // Preserve the original FitSolver response.
+      // Used by the raw-response PDF export.
+      rawSolverResponse: result,
+
+      solverMs: Date.now() - startedAt,
+      source: "bionic-solver",
+    };
+  } catch (err) {
+    throw new Error(
+      `FitSolver failed: ${err.message}`
+    );
   }
 }
