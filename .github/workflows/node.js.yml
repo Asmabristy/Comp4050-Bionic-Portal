@@ -2,7 +2,7 @@ name: Frontend CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, cicd/init ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
