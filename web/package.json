@@ -1,9 +1,10 @@
+
 {
   "name": "fitportal-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "FitPortal operator interface — sign in, define orders, review packing results",
+  "description": "FitPortal operator interface \u2014 sign in, define orders, review packing results",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
