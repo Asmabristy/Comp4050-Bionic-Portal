@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api.js";
@@ -355,7 +356,9 @@ export function NewOrder() {
               : "Dimensions in mm · weight in kg"
           }
           actions={
-            <span className="axon__legend">W across · L back · D up</span>
+            <span className="axon__legend">
+              X: W across · Y: D up · Z: L back
+            </span>
           }
         />
 
@@ -365,9 +368,9 @@ export function NewOrder() {
               <tr>
                 <th>Item code</th>
                 <th>Item reference</th>
-                <th>Width</th>
-                <th>Length</th>
-                <th>Depth</th>
+                <th>Width (X)</th>
+                <th>Depth (Y)</th>
+                <th>Length (Z)</th>
                 <th>Weight</th>
                 <th>Qty</th>
                 <th>Box group</th>
@@ -407,7 +410,7 @@ export function NewOrder() {
                     />
                   </td>
 
-                  {["width", "length", "depth", "weight"].map((key) => (
+                  {["width", "depth", "length", "weight"].map((key) => (
                     <td key={key}>
                       <input
                         type="number"
@@ -477,8 +480,8 @@ export function NewOrder() {
                   depth={item.depth}
                   title={`${
                     item.itemCode || `Row ${index + 1}`
-                  }: width ${item.width}, length ${item.length}, depth ${
-                    item.depth
+                  }: width ${item.width}, depth ${item.depth}, length ${
+                    item.length
                   } millimetres`}
                 />
               </div>
