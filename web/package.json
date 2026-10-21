@@ -1,17 +1,16 @@
-
 {
   "name": "fitportal-web",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "FitPortal operator interface \u2014 sign in, define orders, review packing results",
+  "description": "FitPortal operator interface — sign in, define orders, review packing results",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@bionic/visualiser": "github:subham-dahal/visualiser-bionic-#refactor/app",
+    "@bionic/visualiser": "github:subham-dahal/visualiser-bionic-#main",
     "jspdf": "^4.2.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
