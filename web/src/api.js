@@ -1,3 +1,4 @@
+
 const TOKEN_KEY = "fitportal.token";
 const REFRESH_KEY = "fitportal.refresh";
 
@@ -6,7 +7,9 @@ export const tokenStore = {
   set: (t) => localStorage.setItem(TOKEN_KEY, t),
   getRefresh: () => localStorage.getItem(REFRESH_KEY),
   setRefresh: (t) =>
-    t ? localStorage.setItem(REFRESH_KEY, t) : localStorage.removeItem(REFRESH_KEY),
+    t
+      ? localStorage.setItem(REFRESH_KEY, t)
+      : localStorage.removeItem(REFRESH_KEY),
   clear: () => {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(REFRESH_KEY);
@@ -65,13 +68,21 @@ async function refreshAccessToken() {
 }
 
 async function request(path, { method = "GET", body } = {}) {
-  let res = await send(path, { method, body, token: tokenStore.get() });
+  let res = await send(path, {
+    method,
+    body,
+    token: tokenStore.get(),
+  });
 
   if (res.status === 401 && path !== "/auth/refresh") {
     const fresh = await refreshAccessToken();
 
     if (fresh) {
-      res = await send(path, { method, body, token: fresh });
+      res = await send(path, {
+        method,
+        body,
+        token: fresh,
+      });
     }
   }
 
@@ -81,46 +92,84 @@ async function request(path, { method = "GET", body } = {}) {
     if (res.status === 401) tokenStore.clear();
     throw new Error(data.error || `Request failed (${res.status}).`);
   }
+
   return data;
 }
 
 export const api = {
-  register: (payload) => request("/auth/register", { method: "POST", body: payload }),
-  login: (payload) => request("/auth/login", { method: "POST", body: payload }),
+  register: (payload) =>
+    request("/auth/register", {
+      method: "POST",
+      body: payload,
+    }),
+
+  login: (payload) =>
+    request("/auth/login", {
+      method: "POST",
+      body: payload,
+    }),
+
   me: () => request("/auth/me"),
 
   listContainers: (includeInactive = false) =>
-  request(
-    includeInactive
-      ? "/containers?includeInactive=true"
-      : "/containers"
-  ),
+    request(
+      includeInactive
+        ? "/containers?includeInactive=true"
+        : "/containers"
+    ),
 
-createContainer: (payload) =>
-  request("/containers", {
-    method: "POST",
-    body: payload,
-  }),
+  createContainer: (payload) =>
+    request("/containers", {
+      method: "POST",
+      body: payload,
+    }),
 
-updateContainer: (id, payload) =>
-  request(`/containers/${id}`, {
-    method: "PATCH",
-    body: payload,
-  }),
+  updateContainer: (id, payload) =>
+    request(`/containers/${id}`, {
+      method: "PATCH",
+      body: payload,
+    }),
 
-deleteContainer: (id) =>
-  request(`/containers/${id}`, {
-    method: "DELETE",
-  }),
-  
+  deleteContainer: (id) =>
+    request(`/containers/${id}`, {
+      method: "DELETE",
+    }),
+
   listOrders: () => request("/orders"),
-  createOrder: (payload) => request("/orders", { method: "POST", body: payload }),
-  getOrder: (id) => request(`/orders/${id}`),
-  packOrder: (id) => request(`/orders/${id}/pack`, { method: "POST" }),
-  getResult: (id) => request(`/orders/${id}/result`),
-  listUsers: () => request("/admin/users"),
-  setUserRole: (id, role) =>
-    request(`/admin/users/${id}`, { method: "PATCH", body: { role } }),
 
-  deleteOrder: (id) => request(`/orders/${id}`, { method: "DELETE" }),
+  createOrder: (payload) =>
+    request("/orders", {
+      method: "POST",
+      body: payload,
+    }),
+
+  getOrder: (id) => request(`/orders/${id}`),
+
+  // Update existing order items before repacking.
+  // The backend validates the items and clears the previous packing result.
+  updateOrderItems: (id, items) =>
+    request(`/orders/${id}/items`, {
+      method: "PUT",
+      body: { items },
+    }),
+
+  packOrder: (id) =>
+    request(`/orders/${id}/pack`, {
+      method: "POST",
+    }),
+
+  getResult: (id) => request(`/orders/${id}/result`),
+
+  listUsers: () => request("/admin/users"),
+
+  setUserRole: (id, role) =>
+    request(`/admin/users/${id}`, {
+      method: "PATCH",
+      body: { role },
+    }),
+
+  deleteOrder: (id) =>
+    request(`/orders/${id}`, {
+      method: "DELETE",
+    }),
 };

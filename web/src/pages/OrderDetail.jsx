@@ -14,6 +14,131 @@ import { Measure } from "../components/Measure.jsx";
 import { useAuth } from "../auth.jsx";
 import { isSupervisor } from "../roles.js";
 
+const blankItem = () => ({
+  itemCode: "",
+  itemReference: "",
+  width: "",
+  depth: "",
+  length: "",
+  weight: "",
+  quantity: 1,
+  boxGroup: "",
+});
+
+const editableItem = (item) => ({
+  itemCode: String(item.itemCode ?? ""),
+  itemReference: String(item.itemReference ?? ""),
+  width: String(item.width ?? ""),
+  depth: String(item.depth ?? ""),
+  length: String(item.length ?? ""),
+  weight: String(item.weight ?? ""),
+  quantity: String(item.quantity ?? 1),
+  boxGroup: String(item.boxGroup ?? ""),
+});
+
+const normalizeBoxGroup = (value) => {
+  if (value == null) return "";
+
+  if (
+    typeof value === "string" ||
+    (typeof value === "number" && Number.isFinite(value))
+  ) {
+    return String(value).trim();
+  }
+
+  throw new Error(
+    "Box Group must be text, a number, or null."
+  );
+};
+
+function validateEditedItems(items) {
+  if (items.length === 0) {
+    throw new Error("Add at least one item.");
+  }
+
+  if (items.length > 500) {
+    throw new Error("An order can have at most 500 item rows.");
+  }
+
+  const cleaned = items.map((item, index) => {
+    const number = index + 1;
+    const itemCode = item.itemCode.trim();
+    const itemReference = item.itemReference.trim();
+
+    if (!itemCode || !itemReference) {
+      throw new Error(
+        `Item ${number} needs an item code and item reference.`
+      );
+    }
+
+    const dimensions = [
+      item.width,
+      item.depth,
+      item.length,
+    ];
+
+    if (
+      dimensions.some(
+        (value) =>
+          String(value).trim() === "" ||
+          !Number.isFinite(Number(value)) ||
+          Number(value) <= 0
+      )
+    ) {
+      throw new Error(
+        `Item ${number} needs width, depth, and length above zero.`
+      );
+    }
+
+    if (
+      String(item.weight).trim() === "" ||
+      !Number.isFinite(Number(item.weight)) ||
+      Number(item.weight) < 0
+    ) {
+      throw new Error(
+        `Item ${number} needs a valid weight of zero or greater.`
+      );
+    }
+
+    const quantity = Number(item.quantity);
+
+    if (
+      String(item.quantity).trim() === "" ||
+      !Number.isInteger(quantity) ||
+      quantity < 1 ||
+      quantity > 10000
+    ) {
+      throw new Error(
+        `Item ${number} needs an integer quantity between 1 and 10000.`
+      );
+    }
+
+    return {
+      itemCode,
+      itemReference,
+      width: Number(item.width),
+      depth: Number(item.depth),
+      length: Number(item.length),
+      weight: Number(item.weight),
+      quantity,
+      boxGroup: normalizeBoxGroup(item.boxGroup),
+    };
+  });
+
+  const totalUnits = cleaned.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+
+  if (totalUnits > 20000) {
+    throw new Error(
+      "The order cannot exceed 20000 total units."
+    );
+  }
+
+  return cleaned;
+}
+
 export function OrderDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -21,46 +146,164 @@ export function OrderDetail() {
   const canRunSolver = isSupervisor(user);
 
   const [order, setOrder] = useState(null);
+  const [editedItems, setEditedItems] = useState([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [show3D, setShow3D] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [changesSaved, setChangesSaved] = useState(false);
 
-  const load = () =>
+  const load = async () => {
+    const { order: latest } = await api.getOrder(id);
+    setOrder(latest);
+    setEditedItems(latest.items.map(editableItem));
+    return latest;
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setOrder(null);
+    setEditedItems([]);
+    setEditing(false);
+    setChangesSaved(false);
+    setError("");
+
     api
       .getOrder(id)
-      .then(({ order }) => setOrder(order))
-      .catch((err) => setError(err.message));
+      .then(({ order: latest }) => {
+        if (cancelled) return;
+        setOrder(latest);
+        setEditedItems(latest.items.map(editableItem));
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message);
+      });
 
-  useEffect(() => {
-    load();
+    return () => {
+      cancelled = true;
+    };
   }, [id]);
 
-  // A different order means the open 3D view no longer matches what's on screen.
-  useEffect(() => {
-    setShow3D(false);
-  }, [id]);
+  const hasChanges =
+    order !== null &&
+    JSON.stringify(editedItems) !==
+      JSON.stringify(order.items.map(editableItem));
+
+  const updateItem = (index, key, value) => {
+    setEditedItems((current) =>
+      current.map((item, itemIndex) =>
+        itemIndex === index
+          ? { ...item, [key]: value }
+          : item
+      )
+    );
+  };
+
+  const addItem = () => {
+    setEditedItems((current) => [
+      ...current,
+      blankItem(),
+    ]);
+  };
+
+  const removeItem = (index) => {
+    setEditedItems((current) =>
+      current.filter((_, itemIndex) => itemIndex !== index)
+    );
+  };
+
+  const cancelEditing = () => {
+    setEditedItems(order.items.map(editableItem));
+    setEditing(false);
+    setError("");
+  };
 
   const pack = async () => {
     setError("");
     setBusy(true);
 
     try {
-      const { order } = await api.packOrder(id);
-      setOrder(order);
+      const { order: packedOrder } =
+        await api.packOrder(id);
+
+      setOrder(packedOrder);
+      setEditedItems(packedOrder.items.map(editableItem));
+      setEditing(false);
+      setChangesSaved(false);
     } catch (err) {
       setError(err.message);
-      load();
+
+      try {
+        await load();
+      } catch {
+        // Keep the original packing error visible.
+      }
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const saveAndRepack = async () => {
+    setError("");
+
+    let cleaned;
+
+    try {
+      cleaned = validateEditedItems(editedItems);
+    } catch (err) {
+      setError(err.message);
+      return;
+    }
+
+    setBusy(true);
+
+    let savedSuccessfully = false;
+
+    try {
+      const { order: updated } =
+        await api.updateOrderItems(id, cleaned);
+
+      savedSuccessfully = true;
+      setChangesSaved(true);
+      setOrder(updated);
+      setEditedItems(updated.items.map(editableItem));
+
+      const { order: packedOrder } =
+        await api.packOrder(id);
+
+      setOrder(packedOrder);
+      setEditedItems(packedOrder.items.map(editableItem));
+      setEditing(false);
+      setChangesSaved(false);
+    } catch (err) {
+      setError(
+        savedSuccessfully
+          ? `The item changes were saved, but packing failed: ${err.message}. You can retry packing this order.`
+          : err.message
+      );
+
+      if (savedSuccessfully) {
+        try {
+          await load();
+        } catch {
+          // Preserve the save/packing error.
+        }
+      }
     } finally {
       setBusy(false);
     }
   };
 
   const remove = async () => {
+    setError("");
+    setBusy(true);
+
     try {
       await api.deleteOrder(id);
       navigate("/orders");
     } catch (err) {
       setError(err.message);
+      setBusy(false);
     }
   };
 
@@ -82,14 +325,10 @@ export function OrderDetail() {
     );
   }
 
-  const result = order.result;
+  // Do not show old packing results alongside unsaved edits.
+  const result = hasChanges ? null : order.result;
 
-  /*
-   * Packing summary values.
-   * These are derived from the actual stored Solver result.
-   */
-  const cartonsUsed =
-    result?.boxes?.length ?? 0;
+  const cartonsUsed = result?.boxes?.length ?? 0;
 
   const packedItems =
     result?.boxes?.reduce(
@@ -102,10 +341,8 @@ export function OrderDetail() {
     result?.unpacked?.length ?? 0;
 
   /*
-   * Display unique carton types rather than individual carton instances.
-   * For example: LRG, LRG-2, LRG-3 becomes LRG.
-   *
-   * This affects the display only, not the Solver or Visualizer data.
+   * Display unique carton types rather than carton instances.
+   * This does not modify Solver or Visualizer data.
    */
   const selectedCartons = result?.boxes?.length
     ? [
@@ -121,26 +358,17 @@ export function OrderDetail() {
       ].join(", ")
     : "—";
 
-  /*
-   * Calculate overall volume utilization using
-   * the same box information used by the 2D preview.
-   */
-  const utilization =
-    result?.boxes?.length
-      ? result.boxes.reduce(
-          (total, box) =>
-            total +
-            (typeof box.utilization === "number"
-              ? box.utilization
-              : 0),
-          0
-        ) / result.boxes.length
-      : null;
+  const utilization = result?.boxes?.length
+    ? result.boxes.reduce(
+        (total, box) =>
+          total +
+          (typeof box.utilization === "number"
+            ? box.utilization
+            : 0),
+        0
+      ) / result.boxes.length
+    : null;
 
-  /*
-   * Some Solver result formats expose totalWeight
-   * on each box. If available, display it.
-   */
   const totalWeight =
     result?.boxes?.length &&
     result.boxes.every(
@@ -165,12 +393,16 @@ export function OrderDetail() {
     0
   );
 
+  const showUnsavedWarning =
+    canRunSolver && editing && hasChanges;
+
   return (
     <>
       <button
         type="button"
         className="backlink"
         onClick={() => navigate("/orders")}
+        disabled={busy}
       >
         <Icon name="arrowLeft" size={12} />
         Back to the register
@@ -182,9 +414,27 @@ export function OrderDetail() {
         </div>
       )}
 
+      {showUnsavedWarning && (
+        <div className="notice notice--hivis">
+          <strong>Unsaved item changes.</strong>{" "}
+          Save and re-pack this order to update its
+          packing results. The previous load plan is
+          temporarily hidden.
+        </div>
+      )}
+
+      {changesSaved && !order.result && (
+        <div className="notice notice--hivis">
+          Your updated items have been saved.
+          The order needs to be packed again
+          to generate a new load plan.
+        </div>
+      )}
+
       {result?.source === "mock" && (
         <div className="notice notice--hivis">
-          Packed by the built-in stand-in solver, not FitSolver. Set{" "}
+          Packed by the built-in stand-in solver,
+          not FitSolver. Set{" "}
           <span className="mono">
             USE_MOCK_SOLVER=false
           </span>{" "}
@@ -217,7 +467,7 @@ export function OrderDetail() {
             {
               label: "Cartons offered",
               value:
-                order.containers
+                (order.containers || [])
                   .map(
                     (container) =>
                       container.reference
@@ -233,7 +483,7 @@ export function OrderDetail() {
           ]}
           actions={
             <>
-              {canRunSolver && (
+              {canRunSolver && !editing && (
                 <button
                   type="button"
                   onClick={pack}
@@ -241,9 +491,29 @@ export function OrderDetail() {
                 >
                   {busy
                     ? "Packing…"
-                    : result
+                    : order.result
                       ? "Re-pack"
                       : "Pack this order"}
+                </button>
+              )}
+
+              {canRunSolver && editing && (
+                <button
+                  type="button"
+                  onClick={
+                    hasChanges
+                      ? saveAndRepack
+                      : pack
+                  }
+                  disabled={busy}
+                >
+                  {busy
+                    ? "Saving / Packing…"
+                    : hasChanges
+                      ? "Save and Re-pack"
+                      : order.result
+                        ? "Re-pack"
+                        : "Pack this order"}
                 </button>
               )}
 
@@ -251,6 +521,7 @@ export function OrderDetail() {
                 type="button"
                 className="btn-ghost btn-small btn-danger"
                 onClick={remove}
+                disabled={busy || hasChanges}
               >
                 Delete
               </button>
@@ -258,9 +529,7 @@ export function OrderDetail() {
           }
         />
 
-        {/* ===================================================
-            LOAD PLAN — the order's one subject, full width
-            =================================================== */}
+        {/* LOAD PLAN */}
 
         {result ? (
           <div className="loadplan">
@@ -369,13 +638,17 @@ export function OrderDetail() {
             </div>
 
             <p className="emptystate__title">
-              Not packed yet
+              {hasChanges
+                ? "Item changes pending"
+                : "Not packed yet"}
             </p>
 
             <p className="emptystate__text">
-              {canRunSolver
-                ? "Run the packing algorithm to produce a load plan for this order."
-                : "A supervisor runs the packing algorithm for this order."}
+              {hasChanges
+                ? "Save and re-pack to calculate a load plan using the edited items."
+                : canRunSolver
+                  ? "Run the packing algorithm to produce a load plan for this order."
+                  : "A supervisor runs the packing algorithm for this order."}
             </p>
           </div>
         )}
@@ -398,9 +671,7 @@ export function OrderDetail() {
         )}
       </Plate>
 
-      {/* ===================================================
-          3D INSPECTION
-          =================================================== */}
+      {/* AUTOMATIC 3D VISUALIZER */}
 
       {result?.status === "success" && (
         <Plate>
@@ -413,51 +684,100 @@ export function OrderDetail() {
               <h3>Interactive packing view</h3>
 
               <p>
-                {show3D
-                  ? "Drag to rotate, scroll to zoom, and select an item for its dimensions."
-                  : "Open FitVisualizer to inspect the carton and item placements the solver produced."}
+                Drag to rotate, scroll to zoom, and
+                select an item to inspect its dimensions.
               </p>
             </div>
-
-            <button
-              type="button"
-              onClick={() =>
-                setShow3D((open) => !open)
-              }
-              aria-expanded={show3D}
-              aria-controls="fit-visualiser"
-            >
-              {show3D
-                ? "Hide 3D"
-                : "View in 3D"}
-            </button>
           </div>
 
-          {show3D && (
-            <div
-              className="visualizer-stage"
-              id="fit-visualiser"
-            >
-              <FitVisualiser result={result} />
-            </div>
-          )}
+          <div
+            className="visualizer-stage"
+            id="fit-visualiser"
+          >
+            <FitVisualiser
+              key={result.solvedAt ?? "result"}
+              result={result}
+            />
+          </div>
         </Plate>
       )}
 
-      {/* ===================================================
-          ITEMS
-          =================================================== */}
+      {/* ITEMS */}
 
       <Plate>
         <SectionHead
           title="Items"
-          note="Dimensions in mm · weight in kg"
+          note={
+            editing
+              ? "Edit item specifications · dimensions in mm · weight in kg"
+              : "Dimensions in mm · weight in kg"
+          }
           actions={
             <span className="axon__legend">
               X: W across · Y: D up · Z: L back
             </span>
           }
         />
+
+        {canRunSolver && (
+          <div className="plate__body">
+            <div className="stack-actions">
+              {!editing ? (
+                <button
+                  type="button"
+                  className="btn-ghost btn-small"
+                  disabled={busy}
+                  onClick={() => {
+                    setEditedItems(
+                      order.items.map(editableItem)
+                    );
+                    setEditing(true);
+                    setError("");
+                  }}
+                >
+                  Edit items
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    className="btn-ghost btn-small"
+                    onClick={addItem}
+                    disabled={busy || editedItems.length >= 500}
+                  >
+                    <Icon name="plus" size={13} />
+                    Add item row
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn-ghost btn-small"
+                    onClick={cancelEditing}
+                    disabled={busy}
+                  >
+                    Cancel changes
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={
+                      hasChanges
+                        ? saveAndRepack
+                        : pack
+                    }
+                    disabled={busy}
+                  >
+                    {busy
+                      ? "Saving / Packing…"
+                      : hasChanges
+                        ? "Save and Re-pack"
+                        : "Re-pack"}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="register">
           <table>
@@ -471,34 +791,138 @@ export function OrderDetail() {
                 <th>Weight</th>
                 <th>Qty</th>
                 <th>Box group</th>
+                {editing && canRunSolver && <th />}
               </tr>
             </thead>
 
             <tbody>
-              {order.items.map(
-                (item, index) => (
-                  <tr
-                    key={`${item.itemCode}-${index}`}
-                  >
-                    <td className="mono">
-                      {item.itemCode}
-                    </td>
-                    <td>
-                      {item.itemReference}
-                    </td>
-                    <td>{item.width}</td>
-                    <td>{item.depth}</td>
-                    <td>{item.length}</td>
-                    <td>{item.weight}</td>
-                    <td>
-                      {item.quantity ?? 1}
-                    </td>
-                    <td className="mono">
-                      {item.boxGroup || "—"}
-                    </td>
-                  </tr>
-                )
-              )}
+              {editing && canRunSolver
+                ? editedItems.map((item, index) => (
+                    <tr key={index}>
+                      <td>
+                        <input
+                          value={item.itemCode}
+                          placeholder="ITM-001"
+                          disabled={busy}
+                          onChange={(event) =>
+                            updateItem(
+                              index,
+                              "itemCode",
+                              event.target.value
+                            )
+                          }
+                          aria-label={`Item ${index + 1} code`}
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          value={item.itemReference}
+                          placeholder="Widget A"
+                          disabled={busy}
+                          onChange={(event) =>
+                            updateItem(
+                              index,
+                              "itemReference",
+                              event.target.value
+                            )
+                          }
+                          aria-label={`Item ${index + 1} reference`}
+                        />
+                      </td>
+
+                      {[
+                        "width",
+                        "depth",
+                        "length",
+                        "weight",
+                      ].map((key) => (
+                        <td key={key}>
+                          <input
+                            type="number"
+                            min="0"
+                            step="any"
+                            value={item[key]}
+                            disabled={busy}
+                            onChange={(event) =>
+                              updateItem(
+                                index,
+                                key,
+                                event.target.value
+                              )
+                            }
+                            aria-label={`Item ${index + 1} ${key}`}
+                          />
+                        </td>
+                      ))}
+
+                      <td>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10000"
+                          step="1"
+                          value={item.quantity}
+                          disabled={busy}
+                          onChange={(event) =>
+                            updateItem(
+                              index,
+                              "quantity",
+                              event.target.value
+                            )
+                          }
+                          aria-label={`Item ${index + 1} quantity`}
+                        />
+                      </td>
+
+                      <td>
+                        <input
+                          type="text"
+                          value={item.boxGroup}
+                          placeholder="GROUP-A or 1"
+                          disabled={busy}
+                          onChange={(event) =>
+                            updateItem(
+                              index,
+                              "boxGroup",
+                              event.target.value
+                            )
+                          }
+                          aria-label={`Item ${index + 1} box group`}
+                        />
+                      </td>
+
+                      <td className="text-right">
+                        <button
+                          type="button"
+                          className="btn-small btn-danger"
+                          onClick={() => removeItem(index)}
+                          disabled={busy || editedItems.length === 1}
+                          aria-label={`Remove item ${index + 1}`}
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                : order.items.map((item, index) => (
+                    <tr
+                      key={`${item.itemCode}-${index}`}
+                    >
+                      <td className="mono">
+                        {item.itemCode}
+                      </td>
+                      <td>{item.itemReference}</td>
+                      <td>{item.width}</td>
+                      <td>{item.depth}</td>
+                      <td>{item.length}</td>
+                      <td>{item.weight}</td>
+                      <td>{item.quantity ?? 1}</td>
+                      <td className="mono">
+                        {item.boxGroup || "—"}
+                      </td>
+                    </tr>
+                  ))}
             </tbody>
           </table>
         </div>

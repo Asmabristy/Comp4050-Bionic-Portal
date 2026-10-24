@@ -23,6 +23,26 @@ const blankItem = () => ({
   boxGroup: "",
 });
 
+// Accept string, number, null, or missing Box Group values.
+// Normalize to string for compatibility with the existing form and API.
+const normalizeBoxGroup = (value) => {
+  if (value == null) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value.trim();
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
+  }
+
+  throw new Error(
+    "Box Group must be text, a number, or null."
+  );
+};
+
 export function NewOrder() {
   const [reference, setReference] = useState("");
   const [items, setItems] = useState([blankItem()]);
@@ -190,12 +210,13 @@ export function NewOrder() {
             );
           }
 
-          if (
-            item.boxGroup != null &&
-            typeof item.boxGroup !== "string"
-          ) {
+          let boxGroup;
+
+          try {
+            boxGroup = normalizeBoxGroup(item.boxGroup);
+          } catch {
             throw new Error(
-              `Item ${itemNumber} must have a valid boxGroup.`
+              `Item ${itemNumber} has an invalid boxGroup. Box Group must be text, a number, or null.`
             );
           }
 
@@ -207,7 +228,7 @@ export function NewOrder() {
             depth: item.depth,
             weight: item.weight,
             quantity,
-            boxGroup: item.boxGroup ?? "",
+            boxGroup,
           };
         });
 
@@ -233,18 +254,25 @@ export function NewOrder() {
   const save = async (thenPack) => {
     setError("");
 
-    const cleaned = items
-      .filter((item) => item.itemCode.trim())
-      .map((item) => ({
-        itemCode: item.itemCode.trim(),
-        itemReference: item.itemReference.trim(),
-        width: Number(item.width),
-        length: Number(item.length),
-        depth: Number(item.depth),
-        weight: Number(item.weight),
-        quantity: Number(item.quantity) || 1,
-        boxGroup: item.boxGroup.trim(),
-      }));
+    let cleaned;
+
+    try {
+      cleaned = items
+        .filter((item) => item.itemCode.trim())
+        .map((item) => ({
+          itemCode: item.itemCode.trim(),
+          itemReference: item.itemReference.trim(),
+          width: Number(item.width),
+          length: Number(item.length),
+          depth: Number(item.depth),
+          weight: Number(item.weight),
+          quantity: Number(item.quantity) || 1,
+          boxGroup: normalizeBoxGroup(item.boxGroup),
+        }));
+    } catch (err) {
+      setError(err.message);
+      return;
+    }
 
     if (!reference.trim()) {
       setError("Give the order a reference.");
@@ -316,9 +344,8 @@ export function NewOrder() {
   };
 
   /*
-   * Rows that carry all three dimensions can be drawn. The preview is read
-   * only -- it exists so the operator sees which axis each figure is going
-   * into before the order is saved.
+   * Rows that carry all three dimensions can be drawn.
+   * The preview is read-only.
    */
   const drawable = items.filter(
     (item) =>
@@ -336,22 +363,37 @@ export function NewOrder() {
 
   return (
     <>
-      {error && <div className="notice notice--error">{error}</div>}
+      {error && (
+        <div className="notice notice--error">
+          {error}
+        </div>
+      )}
 
       <Plate>
         <TitleBlock
           name="New order"
           fields={[
-            { label: "Reference", value: reference.trim() || "Not set" },
-            { label: "Item rows", value: items.length },
-            { label: "Units", value: totalUnits },
+            {
+              label: "Reference",
+              value: reference.trim() || "Not set",
+            },
+            {
+              label: "Item rows",
+              value: items.length,
+            },
+            {
+              label: "Units",
+              value: totalUnits,
+            },
           ]}
         />
 
         <div className="tabs">
           <button
             type="button"
-            className={`tab ${mode === "manual" ? "tab--active" : ""}`.trim()}
+            className={`tab ${
+              mode === "manual" ? "tab--active" : ""
+            }`.trim()}
             onClick={switchToManual}
           >
             Manual entry
@@ -359,7 +401,9 @@ export function NewOrder() {
 
           <button
             type="button"
-            className={`tab ${mode === "json" ? "tab--active" : ""}`.trim()}
+            className={`tab ${
+              mode === "json" ? "tab--active" : ""
+            }`.trim()}
             onClick={switchToJson}
           >
             JSON import
@@ -385,33 +429,41 @@ export function NewOrder() {
             </div>
 
             <p className="csv-format-note">
-                 Upload a JSON file containing an "items" array with item details,
-                 dimensions, weight, quantity, and box group.
+              Upload a JSON file containing an "items" array
+              with item details, dimensions, weight, quantity,
+              and box group.
             </p>
           </div>
         )}
 
         <div className="plate__body">
-          <div className="field" style={{ maxWidth: 340 }}>
-            <label htmlFor="reference">Order reference</label>
+          <div
+            className="field"
+            style={{ maxWidth: 340 }}
+          >
+            <label htmlFor="reference">
+              Order reference
+            </label>
 
             <input
               id="reference"
               value={reference}
               placeholder="PO-40128"
-              onChange={(event) => setReference(event.target.value)}
+              onChange={(event) =>
+                setReference(event.target.value)
+              }
             />
           </div>
         </div>
       </Plate>
 
-      {/* ===================================================
-          ITEM SPECIFICATION
-          =================================================== */}
+      {/* ITEM SPECIFICATION */}
 
       <Plate>
         <SectionHead
-          title={mode === "json" ? "Imported items" : "Items"}
+          title={
+            mode === "json" ? "Imported items" : "Items"
+          }
           note={
             mode === "json"
               ? "Every imported value can still be edited"
@@ -446,12 +498,15 @@ export function NewOrder() {
                   <td>
                     <input
                       value={item.itemCode}
-                      placeholder={`ITM-${String(index + 1).padStart(
-                        3,
-                        "0"
-                      )}`}
+                      placeholder={`ITM-${String(
+                        index + 1
+                      ).padStart(3, "0")}`}
                       onChange={(event) =>
-                        updateItem(index, "itemCode", event.target.value)
+                        updateItem(
+                          index,
+                          "itemCode",
+                          event.target.value
+                        )
                       }
                       aria-label={`Item ${index + 1} code`}
                     />
@@ -472,7 +527,12 @@ export function NewOrder() {
                     />
                   </td>
 
-                  {["width", "depth", "length", "weight"].map((key) => (
+                  {[
+                    "width",
+                    "depth",
+                    "length",
+                    "weight",
+                  ].map((key) => (
                     <td key={key}>
                       <input
                         type="number"
@@ -480,9 +540,15 @@ export function NewOrder() {
                         step="any"
                         value={item[key]}
                         onChange={(event) =>
-                          updateItem(index, key, event.target.value)
+                          updateItem(
+                            index,
+                            key,
+                            event.target.value
+                          )
                         }
-                        aria-label={`Item ${index + 1} ${key}`}
+                        aria-label={`Item ${
+                          index + 1
+                        } ${key}`}
                       />
                     </td>
                   ))}
@@ -494,20 +560,33 @@ export function NewOrder() {
                       step="1"
                       value={item.quantity}
                       onChange={(event) =>
-                        updateItem(index, "quantity", event.target.value)
+                        updateItem(
+                          index,
+                          "quantity",
+                          event.target.value
+                        )
                       }
-                      aria-label={`Item ${index + 1} quantity`}
+                      aria-label={`Item ${
+                        index + 1
+                      } quantity`}
                     />
                   </td>
 
                   <td>
                     <input
+                      type="text"
                       value={item.boxGroup}
-                      placeholder="GROUP-A"
+                      placeholder="GROUP-A or 1"
                       onChange={(event) =>
-                        updateItem(index, "boxGroup", event.target.value)
+                        updateItem(
+                          index,
+                          "boxGroup",
+                          event.target.value
+                        )
                       }
-                      aria-label={`Item ${index + 1} box group`}
+                      aria-label={`Item ${
+                        index + 1
+                      } box group`}
                     />
                   </td>
 
@@ -515,9 +594,13 @@ export function NewOrder() {
                     <button
                       type="button"
                       className="btn-small btn-danger"
-                      onClick={() => removeItem(index)}
+                      onClick={() =>
+                        removeItem(index)
+                      }
                       disabled={items.length === 1}
-                      aria-label={`Remove item ${index + 1}`}
+                      aria-label={`Remove item ${
+                        index + 1
+                      }`}
                     >
                       Remove
                     </button>
@@ -531,9 +614,14 @@ export function NewOrder() {
         {shown.length > 0 && (
           <div className="preview">
             {shown.map((item, index) => (
-              <div className="preview__cell" key={index}>
+              <div
+                className="preview__cell"
+                key={index}
+              >
                 <span className="preview__ref">
-                  {item.itemCode || item.itemReference || `Row ${index + 1}`}
+                  {item.itemCode ||
+                    item.itemReference ||
+                    `Row ${index + 1}`}
                 </span>
 
                 <Axon
@@ -541,8 +629,13 @@ export function NewOrder() {
                   length={item.length}
                   depth={item.depth}
                   title={`${
-                    item.itemCode || `Row ${index + 1}`
-                  }: width ${item.width}, depth ${item.depth}, length ${
+                    item.itemCode ||
+                    `Row ${index + 1}`
+                  }: width ${
+                    item.width
+                  }, depth ${
+                    item.depth
+                  }, length ${
                     item.length
                   } millimetres`}
                 />
@@ -552,7 +645,8 @@ export function NewOrder() {
             {drawable.length > shown.length && (
               <div className="preview__cell">
                 <span className="preview__ref">
-                  {drawable.length - shown.length} more specified
+                  {drawable.length -
+                    shown.length} more specified
                 </span>
               </div>
             )}
@@ -580,7 +674,9 @@ export function NewOrder() {
                 onClick={() => save(true)}
                 disabled={busy}
               >
-                {busy ? "Packing…" : "Save and pack"}
+                {busy
+                  ? "Packing…"
+                  : "Save and pack"}
               </button>
             )}
 

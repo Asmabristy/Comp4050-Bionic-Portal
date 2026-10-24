@@ -51,6 +51,13 @@ function validateItems(items) {
   items.forEach((item, index) => {
     const itemNumber = index + 1;
 
+    if (!item || typeof item !== "object" || Array.isArray(item)) {
+      throw new HttpError(
+        400,
+        `Item ${itemNumber} must be an object.`
+      );
+    }
+
     if (!item.itemCode || !String(item.itemCode).trim()) {
       throw new HttpError(
         400,
@@ -287,6 +294,74 @@ ordersRouter.get(
 );
 
 /**
+ * PUT /api/orders/:id/items
+ *
+ * Update the items of an existing order.
+ * Only supervisors can edit order items.
+ *
+ * Previous packing results are cleared because they no longer
+ * represent the updated item specifications.
+ */
+ordersRouter.put(
+  "/:id/items",
+  requireSupervisor,
+  asyncRoute(async (req, res) => {
+    const order = await findOrder(req);
+
+    if (order.status === "packing") {
+      throw new HttpError(
+        409,
+        "This order is currently being packed. Please wait until packing finishes before editing its items."
+      );
+    }
+
+    const { items } = req.body || {};
+
+    // Reuse the same validation as new order creation.
+    validateItems(items);
+
+    // Normalize Box Group values consistently with NewOrder.jsx.
+    const normalizedItems = items.map((item, index) => {
+      let boxGroup = item.boxGroup;
+
+      if (boxGroup == null) {
+        boxGroup = "";
+      } else if (
+        typeof boxGroup === "string" ||
+        (typeof boxGroup === "number" && Number.isFinite(boxGroup))
+      ) {
+        boxGroup = String(boxGroup).trim();
+      } else {
+        throw new HttpError(
+          400,
+          `Item ${index + 1} has an invalid Box Group. Use text, a number, or null.`
+        );
+      }
+
+      return {
+        ...item,
+        boxGroup,
+      };
+    });
+
+    // Save edited items and invalidate the previous packing result.
+    const updated = await orderStore.update(order.id, {
+      items: normalizedItems,
+      status: "draft",
+      result: null,
+    });
+
+    if (!updated) {
+      throw new HttpError(404, "That order doesn't exist.");
+    }
+
+    res.json({
+      order: updated,
+    });
+  })
+);
+
+/**
  * POST /api/orders/:id/pack
  *
  * Send the stored order to Solver and save the result.
@@ -334,7 +409,7 @@ ordersRouter.post(
           boxes: solved.boxes || [],
           unpacked: solved.unpacked || [],
 
-          // Preserve the original FitSolver response for PDF export.
+          // Preserve the original FitSolver response.
           rawSolverResponse: solved.rawSolverResponse ?? null,
 
           solvedAt: new Date().toISOString(),
