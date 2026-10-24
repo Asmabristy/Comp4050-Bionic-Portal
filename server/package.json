@@ -1,4 +1,3 @@
-
 {
   "name": "fitportal-server",
   "version": "0.1.0",
@@ -11,7 +10,7 @@
     "seed": "node src/seed.js"
   },
   "dependencies": {
-    "@bionic/solver": "github:cammo1123/COMP4050-Solvers#f65cafebc8eadc86c385c2979091a423aa347ac7",
+    "@bionic/solver": "github:cammo1123/COMP4050-Solvers#main",
     "@supabase/supabase-js": "^2.116.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
