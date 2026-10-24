@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { jsPDF } from "jspdf";
 import { api } from "../api.js";
 import FitVisualiser from "@bionic/visualiser";
 import { Icon } from "../components/Icon.jsx";
@@ -65,86 +64,6 @@ export function OrderDetail() {
     }
   };
 
-  /**
-   * Download the complete original FitSolver response as a PDF.
-   *
-   * The PDF contains only the stored raw Solver JSON.
-   * No summarisation, normalisation, or calculation is applied.
-   *
-   * Line wrapping and pagination affect presentation only.
-   */
-  const downloadRawSolverPDF = () => {
-    const rawResponse = order?.result?.rawSolverResponse;
-
-    if (rawResponse == null) {
-      setError(
-        "No raw FitSolver response is available for this order."
-      );
-      return;
-    }
-
-    try {
-      setError("");
-
-      const rawJSON = JSON.stringify(rawResponse, null, 2);
-
-      const pdf = new jsPDF({
-        orientation: "portrait",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const margin = 12;
-      const fontSize = 8;
-      const lineHeight = 4;
-      const maxWidth = pageWidth - margin * 2;
-
-      pdf.setFont("courier", "normal");
-      pdf.setFontSize(fontSize);
-
-      let y = margin;
-
-      const lines = rawJSON.split("\n");
-
-      for (const line of lines) {
-        const wrappedLines = pdf.splitTextToSize(
-          line || " ",
-          maxWidth
-        );
-
-        for (const wrappedLine of wrappedLines) {
-          if (y + lineHeight > pageHeight - margin) {
-            pdf.addPage();
-            y = margin;
-          }
-
-          pdf.text(wrappedLine, margin, y);
-          y += lineHeight;
-        }
-      }
-
-      const safeReference = String(
-        order.reference || "order"
-      ).replace(/[^a-zA-Z0-9_-]/g, "_");
-
-      pdf.save(
-        `${safeReference}-raw-solver-response.pdf`
-      );
-    } catch (err) {
-      console.error(
-        "PDF generation failed:",
-        err
-      );
-
-      setError(
-        "Could not generate the raw Solver PDF."
-      );
-    }
-  };
-
   if (!order) {
     return (
       <>
@@ -182,11 +101,21 @@ export function OrderDetail() {
   const unpackedItems =
     result?.unpacked?.length ?? 0;
 
+  /*
+   * Display unique carton types rather than individual carton instances.
+   * For example: LRG, LRG-2, LRG-3 becomes LRG.
+   *
+   * This affects the display only, not the Solver or Visualizer data.
+   */
   const selectedCartons = result?.boxes?.length
     ? [
         ...new Set(
           result.boxes
-            .map((box) => box.boxId)
+            .map((box) =>
+              String(box.boxId ?? "")
+                .trim()
+                .replace(/-\d+$/, "")
+            )
             .filter(Boolean)
         ),
       ].join(", ")
@@ -315,17 +244,6 @@ export function OrderDetail() {
                     : result
                       ? "Re-pack"
                       : "Pack this order"}
-                </button>
-              )}
-
-              {result?.rawSolverResponse != null && (
-                <button
-                  type="button"
-                  className="btn-ghost btn-small"
-                  onClick={downloadRawSolverPDF}
-                  disabled={busy}
-                >
-                  Download Solver PDF
                 </button>
               )}
 
