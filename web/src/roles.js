@@ -6,7 +6,7 @@
  * access. Mirrors hasAtLeast() in the server's auth middleware — the server is
  * what actually enforces this; these checks only decide what to render.
  */
-const RANK = {
+export const RANK = {
   operator: 1,
   supervisor: 2,
   admin: 3,
