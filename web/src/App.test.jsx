@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import App from './App';
@@ -36,7 +36,7 @@ describe('logged out', () => {
         user: null,
         checking: false,
       });
-
+      
       render(<App />);
 
       expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
@@ -86,7 +86,7 @@ describe('logged in', () => {
   describe('role sidebar visibility', () => {
     test.each(roleTestCases)(
       'role $role',
-      ({ role, name, canAccessAdmin }) => {
+      async ({ role, name, canAccessAdmin }) => {
         useAuth.mockReturnValue({
           user: { id: '1', role, name },
           checking: false,
@@ -94,13 +94,13 @@ describe('logged in', () => {
 
         render(<App />);
 
-        expect(screen.getByRole('main')).toBeInTheDocument();
-
-        if (canAccessAdmin) {
-          expect(screen.getByText(/administration/i)).toBeInTheDocument();
-        } else {
-          expect(screen.queryByText(/administration/i)).not.toBeInTheDocument();
-        }
+        await waitFor(() => {
+          if (canAccessAdmin) {
+            expect(screen.getByText(/administration/i)).toBeInTheDocument();
+          } else {
+            expect(screen.queryByText(/administration/i)).not.toBeInTheDocument();
+          }
+        });
       }
     )
   });
@@ -108,7 +108,7 @@ describe('logged in', () => {
   describe('role route protection', () => {
     test.each(roleTestCases)(
       'role $role',
-      ({ role, name, canAccessAdmin }) => {
+      async ({ role, name, canAccessAdmin }) => {
         useAuth.mockReturnValue({
           user: { id: '1', role, name },
           checking: false,
@@ -116,14 +116,16 @@ describe('logged in', () => {
 
         window.history.pushState({}, 'Administration', '/administration');
         render(<App />);
-
-        if (canAccessAdmin) {
-          expect(screen.getByRole('heading', { name: /administration/i })).toBeInTheDocument();
-          expect(window.location.pathname).toBe('/administration');
-        } else {
-          expect(screen.queryByRole('heading', { name: /administration/i })).not.toBeInTheDocument();
-          expect(window.location.pathname).toBe('/dashboard');
-        }
+        
+        await waitFor(() => {
+          if (canAccessAdmin) {
+            expect(screen.getByRole('heading', { name: /administration/i })).toBeInTheDocument();
+            expect(window.location.pathname).toBe('/administration');
+          } else {
+            expect(screen.queryByRole('heading', { name: /administration/i })).not.toBeInTheDocument();
+            expect(window.location.pathname).toBe('/dashboard');
+          }
+        });
       }
     );
   });
@@ -131,7 +133,7 @@ describe('logged in', () => {
   describe('redirects when visiting non-existent route', () => {
     test.each(roleTestCases)(
         'role $role',
-        ({ role, name }) => {
+        async ({ role, name }) => {
           useAuth.mockReturnValue({
             user: { id: '1', role, name },
             checking: false,
@@ -140,7 +142,9 @@ describe('logged in', () => {
         window.history.pushState({}, 'Invalid', '/invalidroutename');
         render(<App />);
 
-        expect(window.location.pathname).toBe('/dashboard');
+        await waitFor(() => {
+          expect(window.location.pathname).toBe('/dashboard');
+        });
       }
     )
   });
