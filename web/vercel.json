@@ -1,8 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/api/:path*",
-      "destination": "https://bionic-portal-api.onrender.com/api/:path*"
-    }
+    { "source": "/api/:path*", "destination": "https://bionic-portal-api.onrender.com/api/:path*" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }
