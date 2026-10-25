@@ -1,12 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import App from './App';
 
+import App from './App';
 import { useAuth } from './auth.jsx';
 import { RANK, isSupervisor} from './roles';
 
-// Auth hook mock to control user state
+// Mocked authentication hook to control user state
 vi.mock('./auth.jsx', async (importOriginal) => {
   const actual = await importOriginal();
   return {
@@ -15,55 +15,83 @@ vi.mock('./auth.jsx', async (importOriginal) => {
   };
 });
 
-// Login screen
-describe('Logged out state', () => {
-    beforeEach(() => {
-      vi.clearAllMocks();
-    });
+describe('logged out', () => {
+  const protectedRoutes = [
+  '/dashboard',
+  '/orders',
+  '/orders/new',
+  '/orders/123-abc',
+  '/cartons',
+  '/administration',
+  ];
 
-  it('renders the login page when the user is not authenticated', () => {
-    // Simulate logged-out state
-    useAuth.mockReturnValue({
-      user: null,
-      checking: false,
-    });
-
-    render(<App />);
-
-    expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+  beforeEach(() => {
+    // Clear the 
+    vi.clearAllMocks();
+    window.history.pushState({}, 'Login', '/login');
   });
 
-  it('renders a loading message while checking the session', () => {
-    // Simulate session check in progress
-    useAuth.mockReturnValue({
-      user: null,
-      checking: true,
+    it('renders login page for unauth user', () => {
+      useAuth.mockReturnValue({
+        user: null,
+        checking: false,
+      });
+
+      render(<App />);
+
+      expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
     });
 
-    render(<App />);
+    it('renders loading message during session check', () => {
+      useAuth.mockReturnValue({
+        user: null,
+        checking: true, // Simulate session check in progress
+      });
 
-    expect(screen.getByText(/checking your session/i)).toBeInTheDocument();
+      render(<App />);
+
+      expect(screen.getByText(/checking your session/i)).toBeInTheDocument();
+    });
+
+    describe('no route access for unauth user', () => {
+      test.each(protectedRoutes)(
+        'route "%s"',
+        (route) => {
+        useAuth.mockReturnValue({
+        user: null,
+        checking: false,
+        });
+        
+      window.history.pushState({}, 'Protected route', route);
+      render(<App />);
+
+      expect(screen.getByRole('heading', { name: /sign in/i })).toBeInTheDocument();
+        }
+      )
+    });
   });
-});
 
-// User logged in
-describe('Role-based visibility/accessibility ', () => {
-  const roleTestCases = Object.keys(RANK).map((role) => ({
+describe('logged in', () => {
+  const roleTestCases = Object.keys(RANK).map(role => ({
     role,
     name: `${role.charAt(0).toUpperCase() + role.slice(1)}`,
     canAccessAdmin: isSupervisor({ role }),
-  }));
+    }));
 
-  describe('checks sidebar visibility', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    window.history.pushState({}, 'Dashboard', '/dashboard');
+  });
+
+  describe('role sidebar visibility', () => {
     test.each(roleTestCases)(
-      'for role "$role": menu visibility and route access should align with rank',
+      'role $role',
       ({ role, name, canAccessAdmin }) => {
         useAuth.mockReturnValue({
           user: { id: '1', role, name },
           checking: false,
         });
 
-        window.history.pushState({}, 'Dashboard', '/dashboard');
         render(<App />);
 
         expect(screen.getByRole('main')).toBeInTheDocument();
@@ -74,12 +102,12 @@ describe('Role-based visibility/accessibility ', () => {
           expect(screen.queryByText(/administration/i)).not.toBeInTheDocument();
         }
       }
-    );
+    )
   });
 
-  describe('checks route protection', () => {
+  describe('role route protection', () => {
     test.each(roleTestCases)(
-      'for role "$role": route access should align with rank',
+      'role $role',
       ({ role, name, canAccessAdmin }) => {
         useAuth.mockReturnValue({
           user: { id: '1', role, name },
@@ -98,5 +126,22 @@ describe('Role-based visibility/accessibility ', () => {
         }
       }
     );
+  });
+
+  describe('redirects when visiting non-existent route', () => {
+    test.each(roleTestCases)(
+        'role $role',
+        ({ role, name }) => {
+          useAuth.mockReturnValue({
+            user: { id: '1', role, name },
+            checking: false,
+          });
+
+        window.history.pushState({}, 'Invalid', '/invalidroutename');
+        render(<App />);
+
+        expect(window.location.pathname).toBe('/dashboard');
+      }
+    )
   });
 });
