@@ -6,6 +6,7 @@ import { authRouter } from "./routes/auth.routes.js";
 import { ordersRouter } from "./routes/orders.routes.js";
 import { containersRouter } from "./routes/containers.routes.js";
 import { adminRouter } from "./routes/admin.routes.js";
+import { solverVersion } from "./services/solverClient.js";
 import { notFound, errorHandler } from "./middleware/errors.js";
 
 const app = express();
@@ -35,6 +36,15 @@ app.get("/api/health", (req, res) => {
     service: "fitportal-api",
     db: "supabase",
     solver: config.useMockSolver ? "mock" : config.solverUrl,
+  });
+});
+
+app.get("/api/version", async (req, res) => {
+  res.json({
+    service: "fitportal-api",
+    node: process.version,
+    runtime: `${process.platform}-${process.arch}`,
+    ...(await solverVersion()),
   });
 });
 
