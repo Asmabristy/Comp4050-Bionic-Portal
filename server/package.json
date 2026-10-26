@@ -10,7 +10,7 @@
     "seed": "node src/seed.js"
   },
   "dependencies": {
-    "@bionic/solver": "github:cammo1123/COMP4050-Solvers#main",
+    "@bionic/solver": "git+https://github.com/cammo1123/COMP4050-Solvers.git#main",
     "@supabase/supabase-js": "^2.116.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

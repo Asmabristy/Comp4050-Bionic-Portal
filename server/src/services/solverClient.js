@@ -1,4 +1,5 @@
 
+import { existsSync, readFileSync } from "node:fs";
 import { config } from "../config.js";
 import { mockPack } from "./mockSolver.js";
 
@@ -402,5 +403,147 @@ export async function requestPacking(order) {
     throw new Error(
       `FitSolver failed: ${err.message}`
     );
+  }
+}
+
+function readJson(url) {
+  try {
+    return JSON.parse(readFileSync(url, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function solverLockEntry(lock) {
+  const resolved =
+    lock?.packages?.["node_modules/@bionic/solver"]?.resolved ?? null;
+
+  const revision =
+    resolved?.match(/\b([0-9a-f]{40})\b/)?.[1] ?? null;
+
+  return { resolved, revision };
+}
+
+/**
+ * Read the build metadata compiled into the native addon without loading it.
+ *
+ * This matters when the addon cannot be loaded at all (for example, when it
+ * requires a newer GLIBCXX than the host provides). The same version string is
+ * embedded by src/buildinfo.h.in and exposed at runtime by info().
+ */
+function solverBinaryBuild() {
+  const solverRoot = new URL(
+    "../../node_modules/@bionic/solver/",
+    import.meta.url
+  );
+
+  const candidates = [
+    new URL("node/build/Release/addon.node", solverRoot),
+    new URL(
+      `node/prebuilds/${process.platform}-${process.arch}/addon.node`,
+      solverRoot
+    ),
+  ];
+
+  const binary = candidates.find((url) => existsSync(url));
+
+  if (!binary) {
+    return null;
+  }
+
+  try {
+    const contents = readFileSync(binary);
+    const marker = Buffer.from("bionic-solver\0", "latin1");
+    const offset = contents.indexOf(marker);
+
+    if (offset < 0) {
+      return null;
+    }
+
+    const fields = contents
+      .subarray(offset)
+      .toString("latin1")
+      .split("\0")
+      .slice(0, 9);
+
+    if (fields.length !== 9 || fields[0] !== "bionic-solver") {
+      return null;
+    }
+
+    return {
+      projectName: fields[0],
+      projectVersion: fields[1],
+      buildType: fields[2],
+      gitHash: fields[3],
+      gitBranch: fields[4],
+      buildTime: fields[5],
+      platform: fields[6],
+      arch: fields[7],
+      compiler: fields[8],
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Report which solver package is declared, which one is actually installed,
+ * and which build the native addon was compiled from.
+ *
+ * The native info() call is deliberately separate: if the addon cannot load
+ * (for example, because of a missing GLIBCXX symbol), the endpoint still
+ * reports the installed lockfile revision and the binary's embedded build
+ * metadata instead of failing completely.
+ */
+export async function solverVersion() {
+  const declared = solverLockEntry(
+    readJson(new URL("../../package-lock.json", import.meta.url))
+  );
+
+  const installed = solverLockEntry(
+    readJson(
+      new URL(
+        "../../node_modules/.package-lock.json",
+        import.meta.url
+      )
+    )
+  );
+
+  const packageJson = readJson(
+    new URL(
+      "../../node_modules/@bionic/solver/package.json",
+      import.meta.url
+    )
+  );
+
+  const result = {
+    declared,
+    installed: {
+      ...installed,
+      version: packageJson?.version ?? null,
+    },
+    binaryBuild: solverBinaryBuild(),
+  };
+
+  if (config.useMockSolver) {
+    return { ...result, mode: "mock" };
+  }
+
+  try {
+    const { info } = await import("@bionic/solver");
+    const build = info();
+
+    return {
+      ...result,
+      binaryBuild: result.binaryBuild ?? build,
+      mode: "native",
+      build,
+    };
+  } catch (err) {
+    return {
+      ...result,
+      mode: "native",
+      error: err.message,
+    };
   }
 }
