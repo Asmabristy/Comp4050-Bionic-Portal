@@ -683,15 +683,15 @@ End-to-end testing verifies the full workflow from supervisor login to results v
 
 | Test ID | Test Description | Expected Result | Status |
 |---------|------------------|-----------------|--------|
-| T01 | Supervisor login | Successful authentication | Pending |
-| T02 | Invalid login | Access rejected | Pending |
-| T03 | Order upload | Order uploaded successfully | Pending |
-| T04 | Carton deletion | Carton removed successfully | Pending |
-| T05 | Solver execution | Results returned correctly | Pending |
-| T06 | Visualiser integration | Results displayed correctly | Pending |
-| T07 | Mobile responsiveness | Interface works on mobile | Pending |
-| T08 | Backend API testing | API responds correctly | Pending |
-| T09 | Complete workflow | End-to-end process successful | Pending |
+| T01 | Supervisor login | Successful authentication | Done |
+| T02 | Invalid login | Access rejected | Done |
+| T03 | Order upload | Order uploaded successfully | Done |
+| T04 | Carton deletion | Carton removed successfully | Done |
+| T05 | Solver execution | Results returned correctly | Done |
+| T06 | Visualiser integration | Results displayed correctly | Done |
+| T07 | Mobile responsiveness | Interface works on mobile | Done |
+| T08 | Backend API testing | API responds correctly | Done |
+| T09 | Complete workflow | End-to-end process successful | Done |
 
 Test statuses should be updated as testing is completed.
 
@@ -887,9 +887,8 @@ The supervisor can use the portal to manage order information, interact with the
 4. Enter the corresponding password.
 5. Select **Login**.
 
-**Supervisor Email:** `[Insert authorised supervisor email]`
-
-Passwords must be provided securely and should not be published in the README.
+**Supervisor Email:** `supervisor@thomax.com`
+**Supervisor Password:** `Demo@123`
 
 #### Managing Orders
 
