@@ -214,7 +214,7 @@ Project Perfect Fit consists of three collaborating teams.
 | **FitSolver** | Packing optimisation algorithm |
 | **FitVisualizer** | Visualisation of packing solutions |
 
-For detailed FitPortal team roles and responsibilities, refer to the [Project Overview](docs/PROJECT_OVERVIEW.md).
+For detailed FitPortal team roles and responsibilities, refer to the [Project Overview](docs/PROJECT-OVERVIEW.md).
 
 ---
 
