@@ -1,6 +1,6 @@
 # Bionic Portal — Sprint 3
 
-For the project overview, team roles and sprint plan, see [README.md](./README.md).
+For the project overview, team roles and sprint plan, see [PROJECT-OVERVIEW.md](./PROJECT-OVERVIEW.md).
 
 **Last updated: 28 October 2026.** This README describes the current Portal, its features, setup, usage and testing commands.
 
