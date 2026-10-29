@@ -39,7 +39,7 @@ Then open **http://localhost:5173**
 operator@thomax.test
 perfectfit
 ```
-## Accessing the Live FitPortal Website
+# Accessing the Live FitPortal Website
 
 FitPortal is deployed and accessible online through Vercel, with its backend hosted on Render.
 
