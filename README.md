@@ -50,7 +50,7 @@ The Supervisor role provides access to supervisory and management functionality 
 
 **Operator**
 
-The Operator role provides access to operational functionality, allowing authorised users to interact with the portal according to their assigned permissions.
+The Operator role provides access to operational functionality, allowing authorised users to interact with the portal according to their assigned permissions. The Operator role is assigned to all other authorised users who are not supervisors. They can log in using their registered email addresses and passwords or through our existing Operator account mentioned above in Login Credentials.
 
 Authentication and access control are managed through Supabase.
 
