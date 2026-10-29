@@ -199,7 +199,7 @@ Detailed documentation is available in the `docs/` directory.
 | [Development Guide](docs/DEVELOPMENT.md) | Development practices and Git workflow |
 | [Running Guide](docs/RUNNING.md) | Local setup and application execution |
 | [Supabase Guide](docs/SUPABASE.md) | Database and authentication configuration |
-| [Design Documentation](docs/DESIGN.md) | System architecture and design decisions |
+| [Design Documentation](docs/DESIGN.md) | Design decisions |
 | [Product Documentation](docs/PRODUCT.md) | Product requirements and functionality |
 
 ---
