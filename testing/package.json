@@ -1,0 +1,9 @@
+{
+  "name": "bionic-sprint3-testing",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node run-tests.mjs backend",
+    "test:frontend": "node run-tests.mjs frontend"
+  }
+}
