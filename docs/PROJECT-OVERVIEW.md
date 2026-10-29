@@ -214,6 +214,8 @@ Key activities:
 - Enhance the dashboard interface.
 - Conduct functional and integration testing.
 - Address functional and non-functional requirements.
+- Deploy the frontend using Vercel.
+- Deploy the backend using Render.
 
 ### 6.4 Sprint 3 – Finalisation and Delivery
 
@@ -226,8 +228,6 @@ Key activities:
 - Finalise frontend and backend functionality.
 - Conduct backend and end-to-end testing.
 - Verify mobile responsiveness.
-- Deploy the frontend using Vercel.
-- Deploy the backend using Render.
 - Update technical documentation and README files.
 - Prepare the final project demonstration.
 
