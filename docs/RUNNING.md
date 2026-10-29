@@ -64,7 +64,7 @@ The Supervisor role provides access to supervisory and management functionality 
 Supervisors can access the portal using their authorised email address and password.
 
 **Supervisor Email:** `supervisor@thomax.com`
-**Supervisor Password** `Demo@123`
+**Supervisor Password:** `Demo@123`
 
 #### Operator
 
@@ -74,8 +74,8 @@ Operators can log in using their registered email addresses and passwords and ac
 
 Operator log in can also use our existing Operator account:
 
-**Operator Email** `operator@thomax.com`
-**Operator Password** `perfectfit`
+**Operator Email:** `operator@thomax.com`
+**Operator Password:** `perfectfit`
 
 #### Role-Based Access Control
 
