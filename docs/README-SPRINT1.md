@@ -1,6 +1,6 @@
 # Bionic Portal — Sprint 1
 
-For the project overview, team roles and sprint plan, see [README.md](./README.md).
+For the project overview, team roles and sprint plan, see [PROJECT OVERVIEW.md](./PROJECTOVERVIEW.md).
 
 ## Current working branch
 
