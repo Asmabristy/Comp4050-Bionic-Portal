@@ -1,11 +1,6 @@
 
-# Bionic FitPortal – Sprint 2 Report
-
-**Project:** Project Perfect Fit  
-**Unit:** COMP4050 – Software Engineering Capstone  
-**Client:** Thomax  
-**Team:** Bionic FitPortal  
-**Sprint:** Sprint 2 – Main Development and Integration
+# Bionic Portal – Sprint 2 
+For the project overview, team roles and sprint plan, see [PROJECT-OVERVIEW.md](./PROJECT-OVERVIEW.md).
 
 ---
 
