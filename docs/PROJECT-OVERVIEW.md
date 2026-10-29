@@ -135,7 +135,6 @@ The FitPortal team consists of four members, each assigned responsibilities to s
 | **Scrum Master** | Wajiha | Facilitating Scrum activities, organising team meetings, tracking progress, supporting team collaboration, and managing blockers. |
 | **Developer** | Huzaifa | System design, frontend and backend development, testing, integration, and technical documentation. |
 | **Developer** | Brandon | System design, frontend and backend development, testing, integration, and technical documentation. |
-| **Developer** | Brandon | System design, frontend and backend development, testing, integration, and technical documentation. |
 | **Developer** | Avi | System design, frontend and backend development, testing, integration, and technical documentation. |
 
 
