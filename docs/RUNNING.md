@@ -64,7 +64,7 @@ The Supervisor role provides access to supervisory and management functionality 
 Supervisors can access the portal using their authorised email address and password.
 
 **Supervisor Email:** `supervisor@thomax.com`
-**Supervisor Password:** `Demo@123`
+**Supervisor Password:** `Demo@1234`
 
 #### Operator
 
