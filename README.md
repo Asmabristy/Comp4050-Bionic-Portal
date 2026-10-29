@@ -30,8 +30,8 @@ The following accounts are intended for authorised demonstration and testing pur
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Supervisor** | `supervisor@example.com` | Demo@123 |
-| **Operator** | `operator@example.com` | perfectfit |
+| **Supervisor** | `supervisor@thomax.com` | Demo@123 |
+| **Operator** | `operator@thomax.com` | perfectfit |
 
 
 ### How to Access FitPortal
