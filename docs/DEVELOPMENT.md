@@ -175,6 +175,188 @@ agreed interface changes, that file changes and nothing else does.
 
 ---
 
+
+## Environment Configuration
+
+FitPortal uses environment variables to manage application settings, database connections, authentication, and communication with external services such as FitSolver.
+
+Environment variables allow developers to configure the application without hardcoding sensitive information into the source code.
+
+### 1. Setting Up the Backend Environment
+
+The backend configuration is located in the `server/` directory.
+
+An example environment configuration is provided in:
+
+```text
+server/.env.example
+```
+
+To configure the backend locally:
+
+**Step 1:** Navigate to the server directory.
+
+```bash
+cd server
+```
+
+**Step 2:** Create a `.env` file using the existing example.
+
+For macOS:
+
+```bash
+cp .env.example .env
+```
+
+For Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+**Step 3:** Open the newly created `.env` file and replace the placeholder values with the appropriate credentials and configuration details provided by the development team.
+
+### 2. Backend Environment Variables
+
+The following is an example of the backend environment configuration:
+
+```env
+PORT=5000
+
+# Supabase Configuration
+SUPABASE_URL=<your-supabase-project-url>
+SUPABASE_ANON_KEY=<your-supabase-anon-key>
+SUPABASE_SERVICE_ROLE_KEY=<your-supabase-service-role-key>
+
+# Solver Configuration
+SOLVER_URL=<your-solver-service-url>
+SOLVER_TIMEOUT_MS=30000
+USE_MOCK_SOLVER=false
+
+# Frontend Configuration
+WEB_ORIGIN=http://localhost:5173
+```
+
+The exact variable names and required values should be checked against `server/.env.example` and `server/src/config.js`.
+
+#### Environment Variable Descriptions
+
+| Variable | Description |
+|----------|-------------|
+| `PORT` | Specifies the port used by the backend server during local development. |
+| `SUPABASE_URL` | URL of the Supabase project used for database operations and authentication. |
+| `SUPABASE_ANON_KEY` | Public Supabase key used for operations subject to configured access policies. |
+| `SUPABASE_SERVICE_ROLE_KEY` | Privileged key used for authorised server-side Supabase operations. |
+| `SOLVER_URL` | URL of the FitSolver service used to process packing requests. |
+| `SOLVER_TIMEOUT_MS` | Maximum time allowed for a Solver request before it times out, in milliseconds. |
+| `USE_MOCK_SOLVER` | Determines whether the backend uses mock Solver responses for development and testing. |
+| `WEB_ORIGIN` | Specifies the frontend origin permitted to communicate with the backend. |
+
+### 3. Frontend Environment Configuration
+
+The React frontend is located in the `web/` directory.
+
+Depending on the frontend implementation, environment variables may be required to configure communication with the backend.
+
+For a Vite-based React application, environment variables exposed to frontend code typically use the `VITE_` prefix.
+
+An example configuration is:
+
+```env
+VITE_API_URL=http://localhost:5000
+```
+
+This specifies the backend API URL used during local development.
+
+**Note:** The exact variable name must match the frontend's existing source code. Do not add `VITE_API_URL` unless the application is configured to use it.
+
+Frontend environment variables must not contain private API keys, passwords, or Supabase service-role credentials because variables exposed through Vite are included in the client-side application.
+
+### 4. Production Environment Configuration
+
+FitPortal uses separate hosting platforms for its frontend and backend.
+
+| Component | Hosting Platform | Configuration |
+|-----------|------------------|---------------|
+| Frontend (`web/`) | Vercel | Frontend environment variables and backend API URL |
+| Backend (`server/`) | Render | Supabase credentials, Solver configuration, and allowed frontend origin |
+| Database | Supabase | Database, authentication, and access policies |
+
+#### Vercel – Frontend Configuration
+
+Frontend environment variables are configured through the Vercel dashboard.
+
+1. Open the FitPortal project in Vercel.
+2. Navigate to **Settings → Environment Variables**.
+3. Add the required frontend configuration.
+4. Ensure the backend API URL points to the deployed Render service.
+5. Redeploy the frontend to apply the updated settings.
+
+For example:
+
+```env
+VITE_API_URL=https://<your-render-service>.onrender.com
+```
+
+This is an example only and must match the variable used by the frontend.
+
+#### Render – Backend Configuration
+
+Backend environment variables are configured through the Render dashboard.
+
+1. Open the FitPortal backend Web Service.
+2. Navigate to **Environment**.
+3. Add the required variables from `server/.env.example`.
+4. Ensure the Supabase configuration is correct.
+5. Configure the Solver service URL.
+6. Set `WEB_ORIGIN` to the deployed Vercel frontend origin.
+7. Save the changes and verify that the service deploys or restarts successfully.
+
+The backend must also use the `PORT` value supplied by Render when running in production.
+
+### 5. Security Guidelines
+
+To prevent accidental exposure of sensitive information, developers must follow these guidelines:
+
+- Never commit `.env` files containing credentials to GitHub.
+- Do not hardcode passwords, private API keys, or authentication tokens into the application.
+- Keep the Supabase service-role key restricted to the backend.
+- Use separate environment configurations for local development and production.
+- Do not share production credentials through public documentation.
+- Ensure access to Vercel, Render, and Supabase is restricted to authorised team members.
+- Rotate credentials if they are accidentally exposed.
+
+The repository's `.gitignore` configuration should exclude environment files:
+
+```gitignore
+.env
+.env.*
+!.env.example
+```
+
+The `.env.example` file should only contain variable names and safe placeholder values.
+
+### 6. Troubleshooting Environment Issues
+
+| Issue | Possible Cause | Recommended Solution |
+|-------|----------------|----------------------|
+| Backend fails to start | Missing or invalid environment variables | Verify the values in `server/.env`. |
+| Supabase connection fails | Incorrect Supabase URL or credentials | Check the Supabase project configuration. |
+| Frontend cannot communicate with backend | Incorrect API URL or CORS configuration | Verify the backend URL and `WEB_ORIGIN`. |
+| Solver request fails | Incorrect Solver URL or unavailable service | Check `SOLVER_URL` and service availability. |
+| Application works locally but not after deployment | Missing production environment variables | Verify the Vercel and Render environment settings. |
+| Updated variables are not applied | Application has not restarted | Restart the local server or redeploy the affected service. |
+
+### 7. Additional Resources
+
+For further setup and configuration instructions, refer to:
+
+- [Running Instructions](RUNNING.md)
+- [Supabase Documentation](SUPABASE.md)
+- [Render Documentation](https://render.com/docs)
+- [Vercel Documentation](https://vercel.com/docs)
+
+
 ## Notes for the team
 
 - **Units are millimetres and grams**
