@@ -30,7 +30,7 @@ The following accounts are intended for authorised demonstration and testing pur
 
 | Role | Email | Password |
 |------|-------|----------|
-| **Supervisor** | `supervisor@thomax.com` | Demo@123 |
+| **Supervisor** | `supervisor@thomax.com` | Demo@1234 |
 | **Operator** | `operator@thomax.com` | perfectfit |
 
 
