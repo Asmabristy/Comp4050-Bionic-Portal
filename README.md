@@ -22,8 +22,6 @@ The application is hosted using:
 - **Backend:** Render
 - **Database and Authentication:** Supabase
 
-> Replace the website URL above with the actual deployed Vercel link.
-
 ### Login Credentials
 
 FitPortal supports two user roles: **Supervisor** and **Operator**.
