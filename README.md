@@ -33,7 +33,6 @@ The following accounts are intended for authorised demonstration and testing pur
 | **Supervisor** | `supervisor@example.com` | Demo@123 |
 | **Operator** | `operator@example.com` | perfectfit |
 
-**Note:** Replace the example email addresses with the actual authorised demo account emails. Passwords should be shared securely with the project supervisor, assessors, and authorised team members rather than published in the repository.
 
 ### How to Access FitPortal
 
