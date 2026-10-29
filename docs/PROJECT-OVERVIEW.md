@@ -301,6 +301,7 @@ These include:
 ### 8.2 Task Management
 
 Trello is used to organise and track development tasks.
+Our Trello board: https://trello.com/b/Vof2LDaF/bionic-portal-project-management
 
 Tasks are reviewed and prioritised according to project requirements, sprint objectives, and integration dependencies.
 
