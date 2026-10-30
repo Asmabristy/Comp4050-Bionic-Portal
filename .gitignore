@@ -1,0 +1,39 @@
+
+# Installed dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+**/dist/
+build/
+
+# Environment files and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+
+# Keep example environment templates
+!.env.example
+!**/.env.example
+!.env.sample
+!**/.env.sample
+
+# Private keys and credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*service-account*.json
+*credentials*.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Local editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
