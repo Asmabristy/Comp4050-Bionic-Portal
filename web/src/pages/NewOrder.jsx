@@ -118,15 +118,9 @@ export function NewOrder() {
           );
         }
 
-        if (
-          !data ||
-          typeof data !== "object" ||
-          Array.isArray(data) ||
-          !Array.isArray(data.items) ||
-          data.items.length === 0
-        ) {
+        if (!data ||!Array.isArray(data)) {
           throw new Error(
-            'The JSON file must contain a non-empty "items" array.'
+            'The JSON file must contain a non-empty array.'
           );
         }
 
@@ -139,40 +133,26 @@ export function NewOrder() {
           "weight",
         ];
 
-        const importedItems = data.items.map((item, index) => {
+        const lowerFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1);
+        const importedItems = data.map((rawItem, index) => {
           const itemNumber = index + 1;
 
-          if (
-            !item ||
-            typeof item !== "object" ||
-            Array.isArray(item)
-          ) {
-            throw new Error(
-              `Item ${itemNumber} must be a JSON object.`
-            );
+          if (!rawItem || typeof rawItem !== "object" || Array.isArray(rawItem)) {
+            throw new Error(`Item ${itemNumber} must be a JSON object.`);
           }
 
-          const missingFields = requiredFields.filter(
-            (field) =>
-              item[field] === undefined ||
-              item[field] === null ||
-              String(item[field]).trim() === ""
+          const item = Object.fromEntries(
+            Object.entries(rawItem).map(([key, value]) => [lowerFirst(key), value])
           );
+
+          const missingFields = requiredFields.filter((field) => {
+            const value = item[field];
+            return value == null || String(value).trim() === "";
+          });
 
           if (missingFields.length > 0) {
             throw new Error(
               `Item ${itemNumber} is missing required fields: ${missingFields.join(", ")}.`
-            );
-          }
-
-          if (
-            typeof item.itemCode !== "string" ||
-            !item.itemCode.trim() ||
-            typeof item.itemReference !== "string" ||
-            !item.itemReference.trim()
-          ) {
-            throw new Error(
-              `Item ${itemNumber} must have a valid itemCode and itemReference.`
             );
           }
 
@@ -231,6 +211,8 @@ export function NewOrder() {
             boxGroup,
           };
         });
+
+        console.log(importedItems)
 
         setItems(importedItems);
         setJsonFileName(file.name);
