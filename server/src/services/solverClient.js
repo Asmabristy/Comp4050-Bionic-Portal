@@ -1,4 +1,5 @@
 
+import { solve } from "@bionic/solver";
 import { config } from "../config.js";
 import { mockPack } from "./mockSolver.js";
 
@@ -17,11 +18,7 @@ export function expandItems(items) {
 
     for (let i = 0; i < quantity; i++) {
       expanded.push({
-        itemCode:
-          quantity > 1
-            ? `${item.itemCode}#${i + 1}`
-            : item.itemCode,
-
+        itemCode: item.itemCode,
         itemReference: item.itemReference,
 
         width: item.width,
@@ -364,16 +361,11 @@ export async function requestPacking(order) {
   }
 
   try {
-    const { solve, SolveAlgorithm } = await import(
-      "@bionic/solver"
-    );
-
     console.log("[solver] REQUEST:");
     console.dir(request, { depth: null });
 
     const result = await solve({
       ...request,
-      algorithm: SolveAlgorithm.ExtremePoint,
       options: {},
     });
 
