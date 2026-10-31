@@ -11,7 +11,7 @@
     "test": "node ../testing/run-tests.mjs backend"
   },
   "dependencies": {
-    "@bionic/solver": "github:cammo1123/COMP4050-Solvers#main",
+    "@bionic/solver": "github:cammo1123/COMP4050-Solvers#e9c96e16f413f708e412ea27c88ff742633ca6f2",
     "@supabase/supabase-js": "^2.116.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
