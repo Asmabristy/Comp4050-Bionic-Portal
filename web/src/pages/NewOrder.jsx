@@ -118,9 +118,19 @@ export function NewOrder() {
           );
         }
 
-        if (!data ||!Array.isArray(data)) {
+        // Support both Thomax's top-level array and
+        // FitPortal's original { items: [...] } format.
+        const itemData = Array.isArray(data)
+          ? data
+          : data &&
+              typeof data === "object" &&
+              !Array.isArray(data)
+            ? data.items
+            : null;
+
+        if (!Array.isArray(itemData) || itemData.length === 0) {
           throw new Error(
-            'The JSON file must contain a non-empty array.'
+            'The JSON file must contain a non-empty array or an object with a non-empty "items" array.'
           );
         }
 
@@ -133,26 +143,55 @@ export function NewOrder() {
           "weight",
         ];
 
-        const lowerFirst = (s) => s.charAt(0).toLowerCase() + s.slice(1);
-        const importedItems = data.map((rawItem, index) => {
+        // Convert PascalCase fields (ItemCode, Width, etc.)
+        // to the camelCase fields used internally.
+        const lowerFirst = (key) =>
+          key.charAt(0).toLowerCase() + key.slice(1);
+
+        const importedItems = itemData.map((rawItem, index) => {
           const itemNumber = index + 1;
 
-          if (!rawItem || typeof rawItem !== "object" || Array.isArray(rawItem)) {
-            throw new Error(`Item ${itemNumber} must be a JSON object.`);
+          if (
+            !rawItem ||
+            typeof rawItem !== "object" ||
+            Array.isArray(rawItem)
+          ) {
+            throw new Error(
+              `Item ${itemNumber} must be a JSON object.`
+            );
           }
 
           const item = Object.fromEntries(
-            Object.entries(rawItem).map(([key, value]) => [lowerFirst(key), value])
+            Object.entries(rawItem).map(([key, value]) => [
+              lowerFirst(key),
+              value,
+            ])
           );
 
           const missingFields = requiredFields.filter((field) => {
             const value = item[field];
-            return value == null || String(value).trim() === "";
+
+            return (
+              value == null ||
+              String(value).trim() === ""
+            );
           });
 
           if (missingFields.length > 0) {
             throw new Error(
               `Item ${itemNumber} is missing required fields: ${missingFields.join(", ")}.`
+            );
+          }
+
+          // Validate item identifiers before calling trim().
+          if (
+            typeof item.itemCode !== "string" ||
+            !item.itemCode.trim() ||
+            typeof item.itemReference !== "string" ||
+            !item.itemReference.trim()
+          ) {
+            throw new Error(
+              `Item ${itemNumber} must have a valid text itemCode and itemReference.`
             );
           }
 
@@ -211,8 +250,6 @@ export function NewOrder() {
             boxGroup,
           };
         });
-
-        console.log(importedItems)
 
         setItems(importedItems);
         setJsonFileName(file.name);
@@ -411,9 +448,8 @@ export function NewOrder() {
             </div>
 
             <p className="csv-format-note">
-              Upload a JSON file containing an "items" array
-              with item details, dimensions, weight, quantity,
-              and box group.
+              Upload a JSON file containing an array of items,
+              or an object with an "items" array.
             </p>
           </div>
         )}
