@@ -1821,14 +1821,16 @@ tbody td select:focus {
 .visualizer-stage {
   border-top: 2px solid var(--ink);
   background: var(--field-deep);
-  height: min(80vh, 760px);
+  min-height: 760px;
+  height: auto;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .visualizer-stage > * {
   width: 100%;
-  height: 100%;
+  height: auto;
+  min-height: 760px;
 }
 
 .visualizer-stage canvas {
