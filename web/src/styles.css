@@ -1,4 +1,4 @@
-/* =========================================================
+/* 
    BIONIC PORTAL — STANDARDS SHEET
    ---------------------------------------------------------
    Every carton, item and order is a specified part with a
@@ -9,7 +9,7 @@
    regions, light blue #049DCE appears ONLY where something
    can actually be done, and white is the stock. A disabled
    control loses the light blue entirely.
-   ========================================================= */
+   */
 
 :root {
   /* --- stock & ink ------------------------------------- */
@@ -923,6 +923,21 @@ td,
    the row's own action clean off the sheet. */
 .register table {
   min-width: 620px;
+}
+/* Allow editable order tables enough room for their input fields. */
+.register:has(input) table {
+  min-width: 1150px;
+}
+
+/* Prevent the quantity input from being squeezed or clipped. */
+.register:has(input) td:nth-child(7) {
+  min-width: 90px;
+}
+
+.register:has(input) td:nth-child(7) input {
+  width: 100%;
+  min-width: 65px;
+  box-sizing: border-box;
 }
 
 table {
