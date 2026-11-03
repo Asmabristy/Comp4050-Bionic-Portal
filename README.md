@@ -195,7 +195,7 @@ Detailed documentation is available in the `docs/` directory.
 
 | Documentation | Description |
 |---------------|-------------|
-| [Project Overview](docs/PROJECT_OVERVIEW.md) | Project background, mission, team roles, responsibilities, and sprint planning |
+| [Project Overview](docs/PROJECT-OVERVIEW.md)| Project background, mission, team roles, responsibilities, and sprint planning |
 | [Development Guide](docs/DEVELOPMENT.md) | Development practices and Git workflow |
 | [Running Guide](docs/RUNNING.md) | Local setup and application execution |
 | [Supabase Guide](docs/SUPABASE.md) | Database and authentication configuration |
