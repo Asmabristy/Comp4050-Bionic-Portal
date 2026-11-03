@@ -131,7 +131,7 @@ The FitPortal team consists of four members, each assigned responsibilities to s
 
 | Role | Team Member | Main Responsibilities |
 |------|-------------|-----------------------|
-| **Product Owner & Developer** | Asma | Product vision, requirements gathering, backlog prioritisation, acceptance criteria, and cross-team coordination.Product vision, requirements gathering, backlog prioritisation, acceptance criteria, and cross-team coordination. Contributed to frontend and backend development, system integration. |
+| **Product Owner & Developer** | Asma | Product vision, requirements gathering, backlog prioritisation, acceptance criteria, and cross-team coordination. Product vision, requirements gathering, backlog prioritisation, acceptance criteria, and cross-team coordination. Contributed to frontend and backend development, system integration. |
 | **Scrum Master** | Wajiha | Facilitating Scrum activities, organising team meetings, tracking progress, supporting team collaboration, and managing blockers. |
 | **Developer** | Huzaifa | System design, frontend and backend development, testing, integration, and technical documentation. |
 | **Developer** | Brandon | System design, frontend and backend development, testing, integration, and technical documentation. |
