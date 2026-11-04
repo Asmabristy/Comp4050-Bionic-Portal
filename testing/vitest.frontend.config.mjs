@@ -14,6 +14,9 @@ export default {
       "@testing-library/jest-dom": fromWeb.resolve(
         "@testing-library/jest-dom"
       ),
+      "@testing-library/react": fromWeb.resolve(
+        "@testing-library/react"
+      ),
     },
   },
   test: {
