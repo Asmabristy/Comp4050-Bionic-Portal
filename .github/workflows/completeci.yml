@@ -51,8 +51,8 @@ jobs:
       working-directory: ./web
 
     - name: Run frontend tests
-      run: npx vitest run --config ../testing/vitest.frontend.config.mjs
-      working-directory: ./web
+      run: npm run test:frontend
+      working-directory: ./testing
 
   backend-test:
     runs-on: ubuntu-latest
@@ -74,5 +74,5 @@ jobs:
         working-directory: ./server
 
       - name: Run backend tests
-        run: npx vitest run --config ../testing/vitest.backend.config.mjs
-        working-directory: ./server
+        run: npm test
+        working-directory: ./testing
