@@ -15,7 +15,7 @@ export default {
       "@testing-library/react": fromWeb.resolve(
         "@testing-library/react"
       ),
-      vitest: fileURLToPath(new URL("./dist/index.js", pathToFileURL(fromServer.resolve("vitest/package.json")))),
+      vitest: fileURLToPath(new URL("./dist/index.js", pathToFileURL(fromWeb.resolve("vitest/package.json")))),
     },
   },
   test: {
