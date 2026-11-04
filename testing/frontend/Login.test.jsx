@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Login } from '../../web/src/pages/Login.jsx';
 import { useAuth } from '../../web/src/auth.jsx';
 
-vi.mock('../auth.jsx', () => ({
+vi.mock('../../web/src/auth.jsx', () => ({
   useAuth: vi.fn(),
 }));
 

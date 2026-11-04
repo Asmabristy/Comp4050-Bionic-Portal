@@ -7,7 +7,7 @@ import { useAuth } from '../../web/src/auth.jsx';
 import { RANK, isSupervisor} from '../../web/src/roles.js';
 
 // Mocked authentication hook to control user state
-vi.mock('./auth.jsx', async (importOriginal) => {
+vi.mock('../../web/src/auth.jsx', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
