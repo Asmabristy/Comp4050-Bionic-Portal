@@ -50,6 +50,12 @@ jobs:
       run: npm ci
       working-directory: ./web
 
+    - name: Check frontend module resolution
+      run: |
+        node -e "console.log(require.resolve('@testing-library/jest-dom/vitest'))"
+        node -e "console.log(require.resolve('@testing-library/react'))"
+      working-directory: ./web
+
     - name: Run frontend tests
       run: npm run test:frontend
       working-directory: ./testing
