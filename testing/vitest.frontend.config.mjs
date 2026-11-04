@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import webConfig from "../web/vite.config.js";
 const fromWeb = createRequire(
   new URL("../web/package.json", import.meta.url)
