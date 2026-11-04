@@ -1,4 +1,4 @@
-name: Frontend CI
+name: Complete CI (Frontend + Backend)
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  build:
+  frontend-build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -30,8 +30,8 @@ jobs:
         run: npm run build
         working-directory: ./web
 
-  test:
-    needs: build
+  frontend-test:
+    needs: frontend-build
     runs-on: ubuntu-latest
     strategy: 
       matrix:
@@ -51,5 +51,28 @@ jobs:
       working-directory: ./web
 
     - name: Run frontend tests
-      run: npm run test:run
+      run: npx vitest run --config ../testing/vitest.frontend.config.mjs
       working-directory: ./web
+
+  backend-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x, 22.x, 24.x]
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Node.js setup
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: ./server
+
+      - name: Run backend tests
+        run: npx vitest run --config ../testing/vitest.backend.config.mjs
+        working-directory: ./server
