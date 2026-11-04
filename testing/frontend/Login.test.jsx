@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-import { Login } from '../../web/src/components/Login';
+import { Login } from '../../web/src/pages/Login.jsx';
 import { useAuth } from '../../web/src/auth.jsx';
 
 vi.mock('../auth.jsx', () => ({
