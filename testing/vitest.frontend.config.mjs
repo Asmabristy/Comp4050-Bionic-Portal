@@ -9,8 +9,8 @@ export default {
   root: fileURLToPath(new URL("../web/", import.meta.url)),
   resolve: {
     alias: {
-      "@testing-library/jest-dom": fromWeb.resolve(
-        "@testing-library/jest-dom"
+      "@testing-library/jest-dom/vitest": fromWeb.resolve(
+        "@testing-library/jest-dom/vitest"
       ),
       "@testing-library/react": fromWeb.resolve(
         "@testing-library/react"
